@@ -1,7 +1,16 @@
 import { useState } from 'react';
 import { ITINERARY_DAYS } from '../data/tripData';
+import type { ResolvedTripItem, TripStatus } from '../types/trip';
 import { getGoogleMapsUrl } from '../utils/geo';
 import { IconArrowUpRight, IconPin, IconSwap } from './Icons';
+
+interface FullItineraryViewProps {
+  allItems: ResolvedTripItem[];
+  tripStatus: TripStatus;
+  effectiveNowMs: number;
+  onOpenMapForSpot: (item: ResolvedTripItem, dayNum: number) => void;
+  onToggleAlternative: (itemId: string, altId: string | null) => void;
+}
 
 export default function FullItineraryView({
   allItems,
@@ -9,11 +18,11 @@ export default function FullItineraryView({
   effectiveNowMs,
   onOpenMapForSpot,
   onToggleAlternative
-}) {
-  const [dayFilter, setDayFilter] = useState('all');
+}: FullItineraryViewProps) {
+  const [dayFilter, setDayFilter] = useState<string>('all');
 
   const daysToShow =
-    dayFilter === 'all' ? ITINERARY_DAYS : ITINERARY_DAYS.filter((d) => String(d.day) === String(dayFilter));
+    dayFilter === 'all' ? ITINERARY_DAYS : ITINERARY_DAYS.filter((d) => String(d.day) === dayFilter);
 
   return (
     <div className="max-w-6xl mx-auto px-5 sm:px-8 pt-8 pb-28">
@@ -68,14 +77,16 @@ export default function FullItineraryView({
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {dayObj.items.map((rawItem, idx) => {
-                const item = allItems.find((x) => x.id === rawItem.id) || rawItem;
-                const isActive = tripStatus.currentItem?.id === item.id;
-                const isNext = !tripStatus.currentItem && tripStatus.nextItem?.id === item.id;
-                const isDone = effectiveNowMs >= new Date(item.end).getTime();
+                const resolved = allItems.find((x) => x.id === rawItem.id);
+                if (!resolved) return null;
+
+                const isActive = tripStatus.currentItem?.id === resolved.id;
+                const isNext = !tripStatus.currentItem && tripStatus.nextItem?.id === resolved.id;
+                const isDone = effectiveNowMs >= resolved.endMs;
 
                 return (
                   <article
-                    key={item.id}
+                    key={resolved.id}
                     className={`border p-5 flex flex-col justify-between transition ${
                       isActive
                         ? 'border-[#A63429] bg-[#FFFDF8] shadow-[5px_5px_0px_rgba(166,52,41,0.18)]'
@@ -89,7 +100,7 @@ export default function FullItineraryView({
                     <div>
                       <div className="flex items-center justify-between gap-2 pb-2.5 mb-3 border-b border-[#1C1B19]/12">
                         <span className="font-mono text-xs font-semibold text-[#1C1B19]">
-                          #{idx + 1} ・ {item.timeLabel}
+                          #{idx + 1} ・ {resolved.timeLabel}
                         </span>
                         <span
                           className={`px-2 py-0.5 text-[10px] font-mono border ${
@@ -104,14 +115,16 @@ export default function FullItineraryView({
                         </span>
                       </div>
 
-                      {item.image && (
+                      {resolved.image && (
                         <div className="mb-3 overflow-hidden border border-[#1C1B19]/15 bg-[#EFE8DA] aspect-[16/9] group">
                           <img
-                            src={item.image}
-                            alt={item.title}
+                            src={resolved.image}
+                            alt={resolved.title}
                             loading="lazy"
                             onError={(e) => {
-                              e.currentTarget.parentElement.style.display = 'none';
+                              if (e.currentTarget.parentElement) {
+                                e.currentTarget.parentElement.style.display = 'none';
+                              }
                             }}
                             className="w-full h-full object-cover sepia-[0.08] contrast-[1.03] group-hover:scale-105 transition-transform duration-500"
                           />
@@ -119,20 +132,22 @@ export default function FullItineraryView({
                       )}
 
                       <div className="inline-flex items-center gap-1.5 mb-1.5">
-                        <span className="w-2 h-2 inline-block" style={{ backgroundColor: item.districtColor }} />
+                        <span className="w-2 h-2 inline-block" style={{ backgroundColor: resolved.districtColor }} />
                         <span className="text-[11px] font-mono text-[#5A554C]">
-                          {item.district} ・ {item.location}
+                          {resolved.district} ・ {resolved.location}
                         </span>
                       </div>
 
-                      <h4 className="font-serif text-lg font-bold text-[#1C1B19] mb-2 leading-snug">{item.title}</h4>
+                      <h4 className="font-serif text-lg font-bold text-[#1C1B19] mb-2 leading-snug">
+                        {resolved.title}
+                      </h4>
 
-                      {rawItem.alternatives?.length > 0 && (
+                      {rawItem.alternatives && rawItem.alternatives.length > 0 && (
                         <div className="mb-2.5 flex flex-wrap gap-1.5">
                           <button
                             onClick={() => onToggleAlternative(rawItem.id, null)}
                             className={`px-2 py-0.5 text-[10px] font-mono border cursor-pointer ${
-                              !item.isAltActive
+                              !resolved.isAlternativeActive
                                 ? 'bg-[#1B4332] text-[#F4EFE6] border-[#1B4332]'
                                 : 'bg-[#F4EFE6] text-[#5A554C] border-[#1C1B19]/20'
                             }`}
@@ -144,7 +159,7 @@ export default function FullItineraryView({
                               key={alt.id}
                               onClick={() => onToggleAlternative(rawItem.id, alt.id)}
                               className={`px-2 py-0.5 text-[10px] font-mono border cursor-pointer inline-flex items-center gap-1 ${
-                                item.isAltActive
+                                resolved.isAlternativeActive
                                   ? 'bg-[#A63429] text-[#F4EFE6] border-[#A63429]'
                                   : 'bg-[#F4EFE6] text-[#A63429] border-[#A63429]/40'
                               }`}
@@ -156,13 +171,13 @@ export default function FullItineraryView({
                         </div>
                       )}
 
-                      <p className="text-xs text-[#4A463F] leading-relaxed mb-3">{item.description}</p>
+                      <p className="text-xs text-[#4A463F] leading-relaxed mb-3">{resolved.description}</p>
                     </div>
 
                     <div className="pt-3 border-t border-dashed border-[#1C1B19]/15 flex items-center gap-2">
-                      {item.isHK && (
+                      {resolved.isHK && (
                         <button
-                          onClick={() => onOpenMapForSpot(item, dayObj.day)}
+                          onClick={() => onOpenMapForSpot(resolved, dayObj.day)}
                           className="flex-1 py-2 px-2.5 text-[11px] font-mono bg-[#1B4332] text-[#F4EFE6] hover:bg-[#143326] transition cursor-pointer inline-flex items-center justify-center gap-1"
                         >
                           <IconPin />
@@ -170,7 +185,7 @@ export default function FullItineraryView({
                         </button>
                       )}
                       <a
-                        href={getGoogleMapsUrl(item)}
+                        href={getGoogleMapsUrl(resolved)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex-1 py-2 px-2.5 text-[11px] font-mono bg-[#F4EFE6] text-[#1C1B19] border border-[#1C1B19]/25 hover:bg-[#1C1B19] hover:text-[#F4EFE6] transition inline-flex items-center justify-center gap-1"

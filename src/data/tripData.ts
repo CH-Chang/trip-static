@@ -1,4 +1,6 @@
-export const HOTEL_COORDS = [22.3239, 114.1727]; // 帝京酒店 (旺角東站)
+import type { ChecklistItem, Coords, ItineraryDay, MtrLine, MtrStation } from '../types/trip';
+
+export const HOTEL_COORDS: Coords = [22.3239, 114.1727]; // 帝京酒店 (旺角東站)
 
 export const TRIP_META = {
   title: '香江拾光・四日手帖',
@@ -16,7 +18,7 @@ export const TRIP_META = {
   }
 };
 
-export const ITINERARY_DAYS = [
+export const ITINERARY_DAYS: ItineraryDay[] = [
   {
     day: 1,
     date: '2026-11-22',
@@ -552,7 +554,7 @@ export const ITINERARY_DAYS = [
   }
 ];
 
-export const PACKING_CHECKLIST = [
+export const PACKING_CHECKLIST: ChecklistItem[] = [
   { id: 'doc-passport', label: '有效期限 6 個月以上護照', group: '01 / 證件票券' },
   { id: 'doc-visa', label: '香港電子港簽（預辦入境登記列印）或有效台胞證', group: '01 / 證件票券' },
   { id: 'doc-flight', label: 'HB703 / UO116 電子機票與帝京酒店訂房憑證', group: '01 / 證件票券' },
@@ -563,7 +565,7 @@ export const PACKING_CHECKLIST = [
 ];
 
 // 香港核心港鐵路線圖資料（SVG 座標系 0..920 x 0..480）
-export const MTR_LINES = [
+export const MTR_LINES: MtrLine[] = [
   {
     id: 'ael',
     name: '機場快線 Airport Express',
@@ -602,7 +604,7 @@ export const MTR_LINES = [
   }
 ];
 
-export const MTR_STATIONS = [
+export const MTR_STATIONS: MtrStation[] = [
   {
     id: 'airport',
     name: '機場 Airport',

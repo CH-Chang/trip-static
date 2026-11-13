@@ -1,11 +1,18 @@
 import { PACKING_CHECKLIST } from '../data/tripData';
 
-export default function LogisticsDrawerContent({ checklistState, onToggleChecklist }) {
+interface LogisticsDrawerContentProps {
+  checklistState: Record<string, boolean>;
+  onToggleChecklist: (id: string) => void;
+}
+
+export default function LogisticsDrawerContent({
+  checklistState,
+  onToggleChecklist
+}: LogisticsDrawerContentProps) {
   const checkedCount = PACKING_CHECKLIST.filter((c) => checklistState[c.id]).length;
 
   return (
     <div className="space-y-8">
-      {/* 航班登機證 */}
       <div className="space-y-4">
         <h3 className="font-mono text-xs tracking-widest text-[#A63429] uppercase">BOARDING PASSES</h3>
 
@@ -57,7 +64,6 @@ export default function LogisticsDrawerContent({ checklistState, onToggleCheckli
           </div>
         </div>
 
-        {/* 帝京酒店房卡 */}
         <div className="bg-[#1B4332] text-[#F4EFE6] p-5 border border-[#1B4332]">
           <div className="flex justify-between items-center pb-2.5 mb-3 border-b border-[#F4EFE6]/20">
             <span className="font-mono text-xs tracking-widest text-[#D4C5A9]">RESIDENCE ・ 3 NIGHTS</span>
@@ -72,7 +78,6 @@ export default function LogisticsDrawerContent({ checklistState, onToggleCheckli
         </div>
       </div>
 
-      {/* 行前清單 */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-mono text-xs tracking-widest text-[#A63429] uppercase">PACKING CHECKLIST</h3>

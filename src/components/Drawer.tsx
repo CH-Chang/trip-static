@@ -1,9 +1,27 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 
-export default function Drawer({ open, onClose, side = 'right', wide = false, title, subtitle, children }) {
+interface DrawerProps {
+  open: boolean;
+  onClose: () => void;
+  side?: 'left' | 'right';
+  wide?: boolean;
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+}
+
+export default function Drawer({
+  open,
+  onClose,
+  side = 'right',
+  wide = false,
+  title,
+  subtitle,
+  children
+}: DrawerProps) {
   useEffect(() => {
     if (!open) return;
-    const onKeyDown = (e) => {
+    const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKeyDown);
@@ -24,10 +42,8 @@ export default function Drawer({ open, onClose, side = 'right', wide = false, ti
         open ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
       }`}
     >
-      {/* 半透明遮罩 */}
       <div onClick={onClose} className="absolute inset-0 bg-[#1C1B19]/35 backdrop-blur-[2px]" />
 
-      {/* 抽屜本體 */}
       <aside
         className={`absolute top-0 bottom-0 ${positionClass} ${widthClass} ${translateClass} bg-[#FAF6EE] border-[#1C1B19]/25 shadow-2xl transition-transform duration-300 ease-out flex flex-col`}
       >

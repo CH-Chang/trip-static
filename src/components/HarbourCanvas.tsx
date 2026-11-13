@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
 export default function HarbourCanvas() {
-  const canvasRef = useRef(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -68,7 +68,7 @@ export default function HarbourCanvas() {
       }
     });
 
-    const waveLines = [];
+    const waveLines: { geo: THREE.BufferGeometry; index: number }[] = [];
     const segCount = 64;
     const ribbonCount = 9;
     for (let r = 0; r < ribbonCount; r++) {
@@ -110,7 +110,7 @@ export default function HarbourCanvas() {
     const currentMouse = { x: 0, y: 0 };
     let scrollProgress = 0;
 
-    const onPointerMove = (e) => {
+    const onPointerMove = (e: PointerEvent) => {
       targetMouse.x = (e.clientX / window.innerWidth - 0.5) * 2;
       targetMouse.y = (e.clientY / window.innerHeight - 0.5) * 2;
     };
@@ -147,7 +147,7 @@ export default function HarbourCanvas() {
       camera.lookAt(0, 0.5, 0);
 
       waveLines.forEach(({ geo, index }) => {
-        const attr = geo.getAttribute('position');
+        const attr = geo.getAttribute('position') as THREE.BufferAttribute;
         for (let i = 0; i < segCount; i++) {
           const x = attr.getX(i);
           attr.setY(

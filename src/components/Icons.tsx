@@ -1,4 +1,8 @@
-export function IconPin({ className = 'w-3.5 h-3.5' }) {
+interface IconProps {
+  className?: string;
+}
+
+export function IconPin({ className = 'w-3.5 h-3.5' }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 21s-6-5.33-6-10a6 6 0 1 1 12 0c0 4.67-6 10-6 10z" />
@@ -7,7 +11,7 @@ export function IconPin({ className = 'w-3.5 h-3.5' }) {
   );
 }
 
-export function IconClock({ className = 'w-3.5 h-3.5' }) {
+export function IconClock({ className = 'w-3.5 h-3.5' }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="9" />
@@ -16,7 +20,7 @@ export function IconClock({ className = 'w-3.5 h-3.5' }) {
   );
 }
 
-export function IconSwap({ className = 'w-3 h-3' }) {
+export function IconSwap({ className = 'w-3 h-3' }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
@@ -24,7 +28,7 @@ export function IconSwap({ className = 'w-3 h-3' }) {
   );
 }
 
-export function IconTransit({ className = 'w-3.5 h-3.5' }) {
+export function IconTransit({ className = 'w-3.5 h-3.5' }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <rect x="5" y="4" width="14" height="14" rx="2" />
@@ -33,7 +37,7 @@ export function IconTransit({ className = 'w-3.5 h-3.5' }) {
   );
 }
 
-export function IconWalk({ className = 'w-3.5 h-3.5' }) {
+export function IconWalk({ className = 'w-3.5 h-3.5' }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="13" cy="4.5" r="1.5" />
@@ -42,7 +46,7 @@ export function IconWalk({ className = 'w-3.5 h-3.5' }) {
   );
 }
 
-export function IconArrowUpRight({ className = 'w-3 h-3' }) {
+export function IconArrowUpRight({ className = 'w-3 h-3' }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M7 17L17 7M9 7h8v8" />

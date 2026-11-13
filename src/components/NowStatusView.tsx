@@ -1,14 +1,29 @@
 import { HOTEL_COORDS } from '../data/tripData';
+import type { ResolvedTripItem, TripStatus } from '../types/trip';
 import { getBearingAndDistance, getGoogleMapsDirectionsUrl, getGoogleMapsUrl } from '../utils/geo';
 import { IconArrowUpRight, IconClock, IconPin, IconSwap, IconTransit } from './Icons';
 
-function getCountdownParts(ms) {
+type AppTab = 'now' | 'map' | 'itinerary';
+
+interface NowStatusViewProps {
+  tripStatus: TripStatus;
+  effectiveNow: Date;
+  timeMode: 'live' | 'sim';
+  onOpenMapForSpot: (item: ResolvedTripItem, dayNum: number) => void;
+  onOpenTab: (tab: AppTab) => void;
+  onOpenTimeMachine: () => void;
+  onOpenMtrDrawer: (mtrId: string) => void;
+  onToggleAlternative: (itemId: string, altId: string | null) => void;
+  altSelections: Record<string, string>;
+}
+
+function getCountdownParts(ms: number) {
   const totalSec = Math.max(0, Math.floor(ms / 1000));
   const days = Math.floor(totalSec / 86400);
   const hours = Math.floor((totalSec % 86400) / 3600);
   const mins = Math.floor((totalSec % 3600) / 60);
   const secs = totalSec % 60;
-  const pad = (n) => String(n).padStart(2, '0');
+  const pad = (n: number) => String(n).padStart(2, '0');
   return { days: pad(days), hours: pad(hours), mins: pad(mins), secs: pad(secs) };
 }
 
@@ -22,14 +37,12 @@ export default function NowStatusView({
   onOpenMtrDrawer,
   onToggleAlternative,
   altSelections
-}) {
+}: NowStatusViewProps) {
   const cd = getCountdownParts(tripStatus.remainingMs);
 
-  // 狀態一：出發前（行前倒數 + 文青啟期 Slogan + 航班與帝京酒店）
   if (tripStatus.phase === 'before') {
     return (
       <div className="max-w-6xl mx-auto px-5 sm:px-8 pt-8 sm:pt-12 pb-28 space-y-10">
-        {/* 文青海報主視覺 */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center border-b border-[#1C1B19]/15 pb-10">
           <div className="lg:col-span-7 flex items-start gap-5 sm:gap-7">
             <div
@@ -71,7 +84,6 @@ export default function NowStatusView({
             </div>
           </div>
 
-          {/* 倒數計時器牌匾 */}
           <div className="lg:col-span-5 bg-[#1B4332] text-[#F4EFE6] p-6 sm:p-8 border border-[#1B4332] shadow-[8px_8px_0px_rgba(28,27,25,0.12)]">
             <div className="flex items-center justify-between pb-3 mb-5 border-b border-[#F4EFE6]/20">
               <span className="font-mono text-[11px] tracking-[0.2em] text-[#D4C5A9]">COUNTDOWN TO TAKEOFF</span>
@@ -99,7 +111,6 @@ export default function NowStatusView({
           </div>
         </section>
 
-        {/* 貼上紙質航班登機證 & 帝京酒店房卡 */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <span className="font-mono text-xs tracking-[0.25em] text-[#A63429] uppercase">
@@ -114,7 +125,6 @@ export default function NowStatusView({
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            {/* 去程登機證 */}
             <div className="ticket-notch bg-[#FAF6EE] border border-[#1C1B19]/20 p-6 flex flex-col justify-between">
               <div>
                 <div className="flex justify-between items-center pb-3 mb-4 border-b border-dashed border-[#1C1B19]/20">
@@ -144,7 +154,6 @@ export default function NowStatusView({
               </div>
             </div>
 
-            {/* 回程登機證 */}
             <div className="ticket-notch bg-[#FAF6EE] border border-[#1C1B19]/20 p-6 flex flex-col justify-between">
               <div>
                 <div className="flex justify-between items-center pb-3 mb-4 border-b border-dashed border-[#1C1B19]/20">
@@ -174,7 +183,6 @@ export default function NowStatusView({
               </div>
             </div>
 
-            {/* 帝京酒店房卡 */}
             <div className="bg-[#FAF6EE] border border-[#1C1B19]/25 p-6 flex flex-col justify-between shadow-[5px_5px_0px_rgba(27,67,50,0.12)]">
               <div>
                 <div className="flex justify-between items-center pb-3 mb-4 border-b border-[#1C1B19]/15">
@@ -198,7 +206,6 @@ export default function NowStatusView({
     );
   }
 
-  // 狀態二：旅程結束後
   if (tripStatus.phase === 'after') {
     return (
       <div className="max-w-4xl mx-auto px-5 sm:px-8 pt-14 pb-28 text-center">
@@ -229,13 +236,12 @@ export default function NowStatusView({
     );
   }
 
-  // 狀態三：旅途進行中（直接顯示「當下所在景點」大圖海報卡 + 方位與下一站）
   const activeItem = tripStatus.currentItem;
   const nextItem = tripStatus.nextItem;
   const focusItem = activeItem || nextItem;
   const bearingInfo = focusItem?.isHK ? getBearingAndDistance(HOTEL_COORDS, focusItem.coords) : null;
-  const hasAlt = focusItem?.alternatives?.length > 0;
-  const isAltActive = Boolean(altSelections?.[focusItem?.id]);
+  const hasAlt = Boolean(focusItem?.alternatives && focusItem.alternatives.length > 0);
+  const isAltActive = Boolean(focusItem && altSelections[focusItem.id]);
 
   return (
     <div className="max-w-6xl mx-auto px-5 sm:px-8 pt-8 pb-28 space-y-8">
@@ -255,7 +261,6 @@ export default function NowStatusView({
         </span>
       </div>
 
-      {/* 主體實景大卡 */}
       {focusItem && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-[#FAF6EE] border border-[#1C1B19]/25 p-5 sm:p-7 shadow-[7px_7px_0px_rgba(27,67,50,0.12)]">
           {focusItem.image && (
@@ -264,7 +269,9 @@ export default function NowStatusView({
                 src={focusItem.image}
                 alt={focusItem.title}
                 onError={(e) => {
-                  e.currentTarget.parentElement.style.display = 'none';
+                  if (e.currentTarget.parentElement) {
+                    e.currentTarget.parentElement.style.display = 'none';
+                  }
                 }}
                 className="w-full h-full object-cover sepia-[0.08] contrast-[1.03]"
               />
@@ -293,8 +300,7 @@ export default function NowStatusView({
                 <span>{focusItem.location}</span>
               </p>
 
-              {/* 替代方案一鍵切換 */}
-              {hasAlt && (
+              {hasAlt && focusItem.alternatives && (
                 <div className="mb-4 p-3 bg-[#EFE8DA]/80 border border-[#1C1B19]/15">
                   <span className="block font-mono text-[10px] text-[#5A554C] mb-1.5">
                     現場人太多或下雨？即時切換備案：
@@ -368,7 +374,7 @@ export default function NowStatusView({
               )}
               {focusItem.mtrId && (
                 <button
-                  onClick={() => onOpenMtrDrawer(focusItem.mtrId)}
+                  onClick={() => onOpenMtrDrawer(focusItem.mtrId!)}
                   className="px-3 py-2 font-mono text-xs text-[#1B4332] hover:underline cursor-pointer"
                 >
                   查港鐵轉乘 →
@@ -379,7 +385,6 @@ export default function NowStatusView({
         </div>
       )}
 
-      {/* 下一站預告條 */}
       {nextItem && (
         <div className="p-4 bg-[#EFE8DA] border border-[#1C1B19]/15 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>

@@ -1,11 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import { HOTEL_COORDS, ITINERARY_DAYS } from '../data/tripData';
+import type { TripItem, TripStatus } from '../types/trip';
 import { getBearingAndDistance, getGoogleMapsDirectionsUrl, getGoogleMapsUrl } from '../utils/geo';
 import { IconArrowUpRight, IconPin, IconSwap, IconTransit } from './Icons';
 
-function resolveEffectiveItem(item, altSelections) {
-  const altId = altSelections?.[item.id];
+interface EffectiveMapItem extends TripItem {
+  isAlternativeActive: boolean;
+}
+
+interface MapWorkspaceProps {
+  selectedDay: number;
+  onSelectDay: (day: number) => void;
+  selectedItemId: string;
+  onSelectItemId: (id: string) => void;
+  altSelections: Record<string, string>;
+  onToggleAlternative: (itemId: string, altId: string | null) => void;
+  onJumpToMtr: (mtrId: string) => void;
+  tripStatus: TripStatus;
+  effectiveNowMs: number;
+}
+
+function resolveEffectiveItem(item: TripItem, altSelections: Record<string, string>): EffectiveMapItem {
+  const altId = altSelections[item.id];
   if (altId && item.alternatives) {
     const found = item.alternatives.find((a) => a.id === altId);
     if (found) {
@@ -33,16 +50,16 @@ export default function MapWorkspace({
   onJumpToMtr,
   tripStatus,
   effectiveNowMs
-}) {
-  const mapContainerRef = useRef(null);
-  const mapRef = useRef(null);
-  const layerGroupRef = useRef(null);
+}: MapWorkspaceProps) {
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const layerGroupRef = useRef<L.LayerGroup | null>(null);
 
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [spotCardOpen, setSpotCardOpen] = useState(true);
 
   const dayObj = useMemo(
-    () => ITINERARY_DAYS.find((d) => d.day === selectedDay) || ITINERARY_DAYS[0],
+    () => ITINERARY_DAYS.find((d) => d.day === selectedDay) ?? ITINERARY_DAYS[0],
     [selectedDay]
   );
 
@@ -53,7 +70,7 @@ export default function MapWorkspace({
 
   const hkItems = useMemo(() => dayItems.filter((it) => it.isHK), [dayItems]);
 
-  const rawSelectedItem = useMemo(() => {
+  const rawSelectedItem = useMemo<TripItem | null>(() => {
     for (const d of ITINERARY_DAYS) {
       const found = d.items.find((i) => i.id === selectedItemId);
       if (found) return found;
@@ -61,7 +78,7 @@ export default function MapWorkspace({
     return hkItems[0] || dayItems[0] || null;
   }, [selectedItemId, hkItems, dayItems]);
 
-  const selectedItem = useMemo(() => {
+  const selectedItem = useMemo<EffectiveMapItem | null>(() => {
     if (!rawSelectedItem) return null;
     return resolveEffectiveItem(rawSelectedItem, altSelections);
   }, [rawSelectedItem, altSelections]);
@@ -108,7 +125,6 @@ export default function MapWorkspace({
 
     group.clearLayers();
 
-    // 帝京酒店基地
     const hotelIcon = L.divIcon({
       className: '',
       html: `<div style="background:#1B4332;color:#F4EFE6;border:2px solid #FAF6EE;padding:3px 8px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:3px 3px 0 rgba(28,27,25,0.25);">BASE ・ 帝京酒店</div>`,
@@ -119,7 +135,6 @@ export default function MapWorkspace({
       .addTo(group)
       .bindPopup('<strong>帝京酒店 Royal Plaza Hotel</strong><br/>旺角東站 D 出口・三天基地');
 
-    // 當日路線軌跡
     if (hkItems.length > 1) {
       L.polyline(
         hkItems.map((it) => it.coords),
@@ -127,7 +142,6 @@ export default function MapWorkspace({
       ).addTo(group);
     }
 
-    // 當日景點編號標記
     hkItems.forEach((item, idx) => {
       const isSelected = selectedItem?.id === item.id;
       const isLive = tripStatus.currentItem?.id === item.id;
@@ -155,7 +169,6 @@ export default function MapWorkspace({
       marker.bindTooltip(`${idx + 1}. ${item.title}`, { direction: 'top', offset: [0, -12] });
     });
 
-    // 方位線 + 鏡頭聚焦
     if (selectedItem && selectedItem.isHK) {
       const isSameAsHotel =
         Math.abs(selectedItem.coords[0] - HOTEL_COORDS[0]) < 0.001 &&
@@ -186,10 +199,8 @@ export default function MapWorkspace({
 
   return (
     <div className="relative w-full h-[calc(100vh-3.75rem)] overflow-hidden bg-[#EFE8DA]">
-      {/* 滿版互動地圖 */}
       <div ref={mapContainerRef} className="absolute inset-0 w-full h-full z-0" />
 
-      {/* 頂部懸浮 Day 切換列 & 全覽按鈕 */}
       <div className="absolute top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
         <div className="flex items-center gap-1.5 bg-[#FAF6EE]/95 backdrop-blur-md border border-[#1C1B19]/20 p-1 shadow-md pointer-events-auto overflow-x-auto max-w-full">
           <button
@@ -230,7 +241,6 @@ export default function MapWorkspace({
         </div>
       </div>
 
-      {/* 左側懸浮簡潔行程抽屜 (桌機左側 / 手機隱藏或可收合) */}
       {drawerOpen && (
         <aside className="absolute top-16 left-3 bottom-24 z-20 w-[calc(100%-1.5rem)] sm:w-[330px] bg-[#FAF6EE]/95 backdrop-blur-md border border-[#1C1B19]/25 shadow-[6px_6px_0px_rgba(27,67,50,0.14)] flex flex-col overflow-hidden">
           <div className="px-4 py-3 bg-[#1B4332] text-[#F4EFE6] flex items-center justify-between shrink-0">
@@ -270,7 +280,6 @@ export default function MapWorkspace({
                       : 'hover:bg-[#F4EFE6]'
                   }`}
                 >
-                  {/* 迷你實景縮圖 */}
                   <div className="w-14 h-14 shrink-0 bg-[#EFE8DA] border border-[#1C1B19]/15 overflow-hidden relative">
                     {item.image && (
                       <img
@@ -311,7 +320,6 @@ export default function MapWorkspace({
         </aside>
       )}
 
-      {/* 右側懸浮景點詳情卡（含實景照、方位線數據、備案切換與 Google Maps 導航） */}
       {spotCardOpen && selectedItem && (
         <aside className="absolute top-16 right-3 bottom-24 sm:bottom-auto sm:max-h-[calc(100vh-11rem)] z-20 w-[calc(100%-1.5rem)] sm:w-[340px] bg-[#FAF6EE]/96 backdrop-blur-md border border-[#1C1B19]/25 shadow-[6px_6px_0px_rgba(27,67,50,0.16)] flex flex-col overflow-y-auto">
           <div className="relative">
@@ -321,7 +329,9 @@ export default function MapWorkspace({
                   src={selectedItem.image}
                   alt={selectedItem.title}
                   onError={(e) => {
-                    e.currentTarget.parentElement.style.display = 'none';
+                    if (e.currentTarget.parentElement) {
+                      e.currentTarget.parentElement.style.display = 'none';
+                    }
                   }}
                   className="w-full h-full object-cover sepia-[0.08] contrast-[1.03]"
                 />
@@ -357,8 +367,7 @@ export default function MapWorkspace({
               </p>
             </div>
 
-            {/* 替代景點一鍵切換 */}
-            {rawSelectedItem?.alternatives?.length > 0 && (
+            {rawSelectedItem?.alternatives && rawSelectedItem.alternatives.length > 0 && (
               <div className="p-2.5 bg-[#EFE8DA]/80 border border-[#1C1B19]/15">
                 <span className="block font-mono text-[10px] text-[#5A554C] mb-1.5">
                   人太多或下雨？切換替代點：
@@ -425,7 +434,7 @@ export default function MapWorkspace({
 
               {selectedItem.mtrId && (
                 <button
-                  onClick={() => onJumpToMtr(selectedItem.mtrId)}
+                  onClick={() => onJumpToMtr(selectedItem.mtrId!)}
                   className="w-full py-1.5 text-[11px] font-mono text-[#1B4332] hover:underline cursor-pointer"
                 >
                   查看鄰近港鐵站轉乘方式 →

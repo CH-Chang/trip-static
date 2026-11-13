@@ -1,35 +1,49 @@
 import { useState } from 'react';
 import { MTR_LINES, MTR_STATIONS } from '../data/tripData';
-import { getBearingAndDistance, getGoogleMapsDirectionsUrl } from '../utils/geo';
+import type { Coords, MtrStation } from '../types/trip';
+import { getBearingAndDistance, getGoogleMapsDirectionsUrl, type BearingMetrics } from '../utils/geo';
 import { IconArrowUpRight, IconPin, IconWalk } from './Icons';
 
-export default function MtrMapSection({ selectedStationId, onSelectStation }) {
-  const [userCoords, setUserCoords] = useState(null);
-  const [locStatus, setLocStatus] = useState('idle');
+interface MtrMapSectionProps {
+  selectedStationId: string;
+  onSelectStation: (id: string) => void;
+}
+
+interface NearestStationInfo extends BearingMetrics {
+  station: MtrStation;
+  sourceLabel: string;
+}
+
+export default function MtrMapSection({ selectedStationId, onSelectStation }: MtrMapSectionProps) {
+  const [userCoords, setUserCoords] = useState<Coords | null>(null);
+  const [locStatus, setLocStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [locMessage, setLocMessage] = useState('');
-  const [nearestInfo, setNearestInfo] = useState(null);
+  const [nearestInfo, setNearestInfo] = useState<NearestStationInfo | null>(null);
 
   const activeStation =
     MTR_STATIONS.find((s) => s.id === selectedStationId) ||
-    MTR_STATIONS.find((s) => s.id === 'mong-kok-east');
+    MTR_STATIONS.find((s) => s.id === 'mong-kok-east') ||
+    MTR_STATIONS[0];
 
-  const computeNearestStation = (coords, label = '您的目前位置') => {
-    let best = null;
-    let bestMetrics = null;
+  const computeNearestStation = (coords: Coords, label = '您的目前位置') => {
+    let best: MtrStation | null = null;
+    let bestMetrics: BearingMetrics | null = null;
 
     MTR_STATIONS.forEach((st) => {
       const metrics = getBearingAndDistance(coords, st.coords);
       const dist = Number(metrics.distanceKm);
-      if (!best || dist < Number(bestMetrics.distanceKm)) {
+      if (!best || !bestMetrics || dist < Number(bestMetrics.distanceKm)) {
         best = st;
         bestMetrics = metrics;
       }
     });
 
     if (best && bestMetrics) {
+      const foundStation: MtrStation = best;
+      const foundMetrics: BearingMetrics = bestMetrics;
       setUserCoords(coords);
-      setNearestInfo({ station: best, ...bestMetrics, sourceLabel: label });
-      onSelectStation(best.id);
+      setNearestInfo({ station: foundStation, ...foundMetrics, sourceLabel: label });
+      onSelectStation(foundStation.id);
     }
   };
 
@@ -45,7 +59,7 @@ export default function MtrMapSection({ selectedStationId, onSelectStation }) {
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const coords = [pos.coords.latitude, pos.coords.longitude];
+        const coords: Coords = [pos.coords.latitude, pos.coords.longitude];
         setLocStatus('success');
         computeNearestStation(coords, '真實 GPS 定位');
         const distCheck = getBearingAndDistance(coords, [22.302, 114.165]);
@@ -63,9 +77,14 @@ export default function MtrMapSection({ selectedStationId, onSelectStation }) {
     );
   };
 
+  const presets: { label: string; coords: Coords }[] = [
+    { label: '尖沙咀海濱', coords: [22.2935, 114.1718] },
+    { label: '中環蘭桂坊', coords: [22.2809, 114.1556] },
+    { label: '旺角女人街', coords: [22.3188, 114.1704] }
+  ];
+
   return (
     <div className="space-y-5">
-      {/* 定位控制列 */}
       <div className="p-3.5 bg-[#F4EFE6] border border-[#1C1B19]/20 flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <button
@@ -79,11 +98,7 @@ export default function MtrMapSection({ selectedStationId, onSelectStation }) {
 
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[11px] font-mono text-[#5A554C]">模擬：</span>
-            {[
-              { label: '尖沙咀海濱', coords: [22.2935, 114.1718] },
-              { label: '中環蘭桂坊', coords: [22.2809, 114.1556] },
-              { label: '旺角女人街', coords: [22.3188, 114.1704] }
-            ].map((preset) => (
+            {presets.map((preset) => (
               <button
                 key={preset.label}
                 onClick={() => {
@@ -102,7 +117,6 @@ export default function MtrMapSection({ selectedStationId, onSelectStation }) {
         {locMessage && <p className="text-xs text-[#4A463F]">{locMessage}</p>}
       </div>
 
-      {/* 路線圖例 */}
       <div className="flex flex-wrap gap-1.5">
         {MTR_LINES.map((line) => (
           <span
@@ -115,7 +129,6 @@ export default function MtrMapSection({ selectedStationId, onSelectStation }) {
         ))}
       </div>
 
-      {/* SVG 港鐵路線圖 */}
       <div className="bg-[#F4EFE6] border border-[#1C1B19]/20 p-3 overflow-x-auto">
         <svg viewBox="0 0 820 430" className="w-full min-w-[540px] h-auto select-none">
           <path
@@ -141,8 +154,8 @@ export default function MtrMapSection({ selectedStationId, onSelectStation }) {
           ))}
 
           {MTR_STATIONS.map((st) => {
-            const isSelected = activeStation?.id === st.id;
-            const isNearest = nearestInfo?.station?.id === st.id;
+            const isSelected = activeStation.id === st.id;
+            const isNearest = nearestInfo?.station.id === st.id;
             const isLabelLeft = [
               'prince-edward',
               'mong-kok',
@@ -162,7 +175,7 @@ export default function MtrMapSection({ selectedStationId, onSelectStation }) {
 
             let textX = st.x + 12;
             let textY = st.y + 4;
-            let anchor = 'start';
+            let anchor: 'start' | 'middle' | 'end' = 'start';
             if (isLabelLeft) {
               textX = st.x - 13;
               anchor = 'end';
@@ -214,7 +227,6 @@ export default function MtrMapSection({ selectedStationId, onSelectStation }) {
         </svg>
       </div>
 
-      {/* 選中車站詳情卡 */}
       <div className="bg-[#1B4332] text-[#F4EFE6] p-5 border border-[#1B4332] space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-[#F4EFE6]/20">
           <div className="flex flex-wrap gap-1.5">
@@ -224,7 +236,7 @@ export default function MtrMapSection({ selectedStationId, onSelectStation }) {
               </span>
             ))}
           </div>
-          {nearestInfo?.station?.id === activeStation.id ? (
+          {nearestInfo?.station.id === activeStation.id ? (
             <span className="px-2 py-0.5 text-[10px] font-mono bg-[#A63429] text-white font-bold">
               最近車站 ・ {nearestInfo.distanceKm} km
             </span>
@@ -237,7 +249,7 @@ export default function MtrMapSection({ selectedStationId, onSelectStation }) {
 
         <h3 className="font-serif text-xl font-bold">{activeStation.name}</h3>
 
-        {nearestInfo?.station?.id === activeStation.id && (
+        {nearestInfo?.station.id === activeStation.id && (
           <p className="text-xs text-[#D4C5A9]">
             位於「{nearestInfo.sourceLabel}」{nearestInfo.dirLabel}方（{nearestInfo.bearingDeg}°），直線距離約{' '}
             <strong className="text-white">{nearestInfo.distanceKm} km</strong>

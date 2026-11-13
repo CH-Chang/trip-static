@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ITINERARY_DAYS, TRIP_META } from './data/tripData';
+import type { ResolvedTripItem, TripStatus } from './types/trip';
 import NowStatusView from './components/NowStatusView';
 import MapWorkspace from './components/MapWorkspace';
 import FullItineraryView from './components/FullItineraryView';
@@ -9,18 +10,22 @@ import LogisticsDrawerContent from './components/LogisticsDrawerContent';
 import HarbourCanvas from './components/HarbourCanvas';
 import { IconClock, IconPin } from './components/Icons';
 
+type AppTab = 'now' | 'map' | 'itinerary';
+type OverlayDrawer = 'none' | 'mtr' | 'logistics';
+type TimeMode = 'live' | 'sim';
+
 const STORAGE_KEY_CHECKLIST = 'hk-trip-2026-react-checklist';
 const STORAGE_KEY_ALTS = 'hk-trip-2026-alt-selections';
 
-function formatClock(date) {
-  const pad = (n) => String(n).padStart(2, '0');
+function formatClock(date: Date) {
+  const pad = (n: number) => String(n).padStart(2, '0');
   return {
     dateStr: `${date.getFullYear()}.${pad(date.getMonth() + 1)}.${pad(date.getDate())}`,
     timeStr: `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
   };
 }
 
-function formatDuration(ms) {
+function formatDuration(ms: number): string {
   const totalSec = Math.max(0, Math.floor(ms / 1000));
   const days = Math.floor(totalSec / 86400);
   const hours = Math.floor((totalSec % 86400) / 3600);
@@ -32,42 +37,40 @@ function formatDuration(ms) {
 }
 
 export default function App() {
-  // 預設一打開就是「01 現在狀況」
-  const [activeTab, setActiveTab] = useState('now'); // 'now' | 'map' | 'itinerary'
-  const [timeMode, setTimeMode] = useState('live');
-  const [simDate, setSimDate] = useState(() => new Date('2026-11-22T20:15:00+08:00'));
-  const [now, setNow] = useState(() => new Date());
+  const [activeTab, setActiveTab] = useState<AppTab>('now');
+  const [timeMode, setTimeMode] = useState<TimeMode>('live');
+  const [simDate, setSimDate] = useState<Date>(() => new Date('2026-11-22T20:15:00+08:00'));
+  const [now, setNow] = useState<Date>(() => new Date());
   const [showHudSimPopover, setShowHudSimPopover] = useState(false);
 
-  // 滑出抽屜狀態 ('none' | 'mtr' | 'logistics')
-  const [activeOverlayDrawer, setActiveOverlayDrawer] = useState('none');
+  const [activeOverlayDrawer, setActiveOverlayDrawer] = useState<OverlayDrawer>('none');
 
-  const [selectedMapDay, setSelectedMapDay] = useState(1);
-  const [selectedMapItemId, setSelectedMapItemId] = useState('d1-6');
-  const [selectedMtrId, setSelectedMtrId] = useState('mong-kok-east');
+  const [selectedMapDay, setSelectedMapDay] = useState<number>(1);
+  const [selectedMapItemId, setSelectedMapItemId] = useState<string>('d1-6');
+  const [selectedMtrId, setSelectedMtrId] = useState<string>('mong-kok-east');
 
-  const [altSelections, setAltSelections] = useState(() => {
+  const [altSelections, setAltSelections] = useState<Record<string, string>>(() => {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY_ALTS) || '{}');
+      return JSON.parse(localStorage.getItem(STORAGE_KEY_ALTS) || '{}') as Record<string, string>;
     } catch {
       return {};
     }
   });
 
-  const [checklistState, setChecklistState] = useState(() => {
+  const [checklistState, setChecklistState] = useState<Record<string, boolean>>(() => {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY_CHECKLIST) || '{}');
+      return JSON.parse(localStorage.getItem(STORAGE_KEY_CHECKLIST) || '{}') as Record<string, boolean>;
     } catch {
       return {};
     }
   });
 
-  const allItems = useMemo(
+  const allItems = useMemo<ResolvedTripItem[]>(
     () =>
       ITINERARY_DAYS.flatMap((d) =>
         d.items.map((item) => {
           const altId = altSelections[item.id];
-          const alt = altId && item.alternatives?.find((a) => a.id === altId);
+          const alt = altId ? item.alternatives?.find((a) => a.id === altId) : undefined;
           return {
             ...item,
             title: alt ? alt.title : item.title,
@@ -75,7 +78,7 @@ export default function App() {
             coords: alt ? alt.coords : item.coords,
             googleQuery: alt ? alt.googleQuery : item.googleQuery,
             description: alt ? alt.description : item.description,
-            isAltActive: Boolean(alt),
+            isAlternativeActive: Boolean(alt),
             day: d.day,
             dateLabel: d.dateLabel,
             startMs: new Date(item.start).getTime(),
@@ -101,7 +104,7 @@ export default function App() {
   const effectiveNowMs = effectiveNow.getTime();
   const { dateStr, timeStr } = formatClock(effectiveNow);
 
-  const tripStatus = useMemo(() => {
+  const tripStatus = useMemo<TripStatus>(() => {
     const tripStartMs = new Date(TRIP_META.startDate).getTime();
     const tripEndMs = new Date(TRIP_META.endDate).getTime();
 
@@ -110,7 +113,7 @@ export default function App() {
         phase: 'before',
         progressPct: 0,
         currentItem: null,
-        nextItem: allItems[0],
+        nextItem: allItems[0] || null,
         completedCount: 0,
         remainingMs: tripStartMs - effectiveNowMs
       };
@@ -127,8 +130,8 @@ export default function App() {
       };
     }
 
-    let currentItem = null;
-    let nextItem = null;
+    let currentItem: ResolvedTripItem | null = null;
+    let nextItem: ResolvedTripItem | null = null;
     let completedCount = 0;
 
     for (let i = 0; i < allItems.length; i++) {
@@ -167,12 +170,12 @@ export default function App() {
     };
   }, [effectiveNowMs, allItems]);
 
-  const switchTab = (tab) => {
+  const switchTab = (tab: AppTab) => {
     setActiveTab(tab);
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   };
 
-  const handleOpenSpotOnMap = (item, dayNum) => {
+  const handleOpenSpotOnMap = (item: ResolvedTripItem, dayNum: number) => {
     setActiveOverlayDrawer('none');
     setSelectedMapDay(dayNum);
     setSelectedMapItemId(item.id);
@@ -180,12 +183,12 @@ export default function App() {
     switchTab('map');
   };
 
-  const handleJumpToMtr = (mtrId) => {
+  const handleJumpToMtr = (mtrId: string) => {
     setSelectedMtrId(mtrId);
     setActiveOverlayDrawer('mtr');
   };
 
-  const handleToggleAlternative = (itemId, altId) => {
+  const handleToggleAlternative = (itemId: string, altId: string | null) => {
     setAltSelections((prev) => {
       const next = { ...prev };
       if (!altId) delete next[itemId];
@@ -195,7 +198,7 @@ export default function App() {
     });
   };
 
-  const toggleChecklist = (id) => {
+  const toggleChecklist = (id: string) => {
     setChecklistState((prev) => {
       const next = { ...prev, [id]: !prev[id] };
       localStorage.setItem(STORAGE_KEY_CHECKLIST, JSON.stringify(next));
@@ -222,6 +225,12 @@ export default function App() {
     ? tripStatus.nextItem
     : allItems.find((i) => i.isHK);
 
+  const tabs: Array<{ id: AppTab; label: string }> = [
+    { id: 'now', label: '01 現在狀況' },
+    { id: 'map', label: '02 地圖' },
+    { id: 'itinerary', label: '03 完整行程' }
+  ];
+
   return (
     <div className={activeTab === 'map' ? 'h-screen w-screen overflow-hidden flex flex-col bg-[#F4EFE6]' : 'min-h-screen bg-[#F4EFE6]'}>
       {activeTab !== 'map' && (
@@ -231,7 +240,6 @@ export default function App() {
         </>
       )}
 
-      {/* 頂部導覽列：三大主分頁 + 兩大滑出抽屜 */}
       <header className="sticky top-0 z-30 bg-[#F4EFE6]/95 backdrop-blur-md border-b border-[#1C1B19]/15 shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-2">
           <div className="flex items-center gap-3 overflow-x-auto no-scrollbar">
@@ -245,11 +253,7 @@ export default function App() {
             </button>
 
             <nav className="flex items-center gap-1">
-              {[
-                { id: 'now', label: '01 現在狀況' },
-                { id: 'map', label: '02 地圖' },
-                { id: 'itinerary', label: '03 完整行程' }
-              ].map((tab) => {
+              {tabs.map((tab) => {
                 const active = activeTab === tab.id;
                 return (
                   <button
@@ -294,7 +298,6 @@ export default function App() {
         </div>
       </header>
 
-      {/* 主內容區 */}
       <main className={activeTab === 'map' ? 'relative flex-1 overflow-hidden' : ''}>
         {activeTab === 'now' && (
           <NowStatusView
@@ -335,7 +338,6 @@ export default function App() {
         )}
       </main>
 
-      {/* 滑出式抽屜：港鐵路網 + GPS 定位 */}
       <Drawer
         open={activeOverlayDrawer === 'mtr'}
         onClose={() => setActiveOverlayDrawer('none')}
@@ -347,7 +349,6 @@ export default function App() {
         <MtrMapSection selectedStationId={selectedMtrId} onSelectStation={setSelectedMtrId} />
       </Drawer>
 
-      {/* 滑出式抽屜：航班、帝京酒店 & 行前手帖 */}
       <Drawer
         open={activeOverlayDrawer === 'logistics'}
         onClose={() => setActiveOverlayDrawer('none')}
@@ -359,7 +360,6 @@ export default function App() {
         <LogisticsDrawerContent checklistState={checklistState} onToggleChecklist={toggleChecklist} />
       </Drawer>
 
-      {/* 常駐底部懸浮動態膠囊 (Floating Live HUD Bar) */}
       <div className="fixed bottom-3 left-3 right-3 sm:left-1/2 sm:-translate-x-1/2 sm:w-[min(94vw,840px)] z-30">
         {showHudSimPopover && (
           <div className="mb-2 p-4 bg-[#FAF6EE] border border-[#1C1B19]/30 shadow-[6px_6px_0px_rgba(27,67,50,0.18)]">
