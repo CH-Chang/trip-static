@@ -1,0 +1,88 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+@theme {
+  --font-sans: "Noto Sans TC", system-ui, sans-serif;
+  --font-serif: "Noto Serif TC", Georgia, serif;
+  --font-mono: "IBM Plex Mono", monospace;
+}
+
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(28, 27, 25, 0.25) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: rgba(28, 27, 25, 0.22);
+    border-radius: 9999px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: #1B4332;
+  }
+
+  body {
+    background-color: #F4EFE6;
+    color: #1C1B19;
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.paper-grain {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+}
+
+.ticket-notch {
+  position: relative;
+}
+.ticket-notch::before,
+.ticket-notch::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background-color: #F4EFE6;
+  border: 1px solid rgba(28, 27, 25, 0.15);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+}
+.ticket-notch::before { left: -10px; }
+.ticket-notch::after { right: -10px; }
+
+/* Leaflet 文青手帖風格微調 */
+.leaflet-container {
+  font-family: var(--font-sans);
+  background: #EFE8DA;
+}
+.leaflet-popup-content-wrapper {
+  background: #FAF6EE;
+  color: #1C1B19;
+  border: 1px solid rgba(28, 27, 25, 0.25);
+  border-radius: 0;
+  box-shadow: 4px 4px 0px rgba(27, 67, 50, 0.16);
+}
+.leaflet-popup-tip {
+  background: #FAF6EE;
+  border: 1px solid rgba(28, 27, 25, 0.2);
+}
