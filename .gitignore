@@ -33,3 +33,6 @@ pnpm-debug.log*
 # Large/generated static assets: fetched in CI by `npm run sync:mtr`
 public/mtr/
 public/pdfjs/
+
+# 行程確認表只留本機
+行程確認表.md
