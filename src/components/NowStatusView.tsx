@@ -1,17 +1,33 @@
-import { HOTEL_COORDS } from '../data/tripData';
+import { useMemo } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { HOTEL_COORDS, ITINERARY_DAYS } from '../data/tripData';
 import type { ResolvedTripItem, TripStatus } from '../types/trip';
 import { getBearingAndDistance, getGoogleMapsDirectionsUrl, getGoogleMapsUrl } from '../utils/geo';
-import { IconArrowUpRight, IconClock, IconPin, IconSwap, IconTransit } from './Icons';
+import { IconArrowUpRight, IconPin, IconSwap, IconTransit } from './Icons';
+import { LineProgress, Seal, StationSign } from './ui/MtrKit';
+import DelayControl from './ui/DelayControl';
+import PaymentBadges from './ui/PaymentBadges';
+import { TicketSlot } from './ui/Tickets';
+import PhotoInspo, { PhotoSpotBadge } from './ui/PhotoInspo';
+import PreDepartureCarousel from './PreDepartureCarousel';
+import TransitLeg from './ui/TransitLeg';
+import { DayWeatherBadge } from './ui/WeatherPanel';
+import { SunEventTag } from './ui/SunTimes';
 
 type AppTab = 'now' | 'map' | 'itinerary';
 
 interface NowStatusViewProps {
+  onOpenChecklist: () => void;
+  onAdjustDelay: (itemId: string, deltaMin: number) => void;
+  onResetDelays: (day?: number) => void;
+  allItems: ResolvedTripItem[];
   tripStatus: TripStatus;
   effectiveNow: Date;
   timeMode: 'live' | 'sim';
   onOpenMapForSpot: (item: ResolvedTripItem, dayNum: number) => void;
   onOpenTab: (tab: AppTab) => void;
   onOpenTimeMachine: () => void;
+  isDebug?: boolean;
   onOpenMtrDrawer: (mtrId: string) => void;
   onToggleAlternative: (itemId: string, altId: string | null) => void;
   altSelections: Record<string, string>;
@@ -19,390 +35,401 @@ interface NowStatusViewProps {
 
 function getCountdownParts(ms: number) {
   const totalSec = Math.max(0, Math.floor(ms / 1000));
-  const days = Math.floor(totalSec / 86400);
-  const hours = Math.floor((totalSec % 86400) / 3600);
-  const mins = Math.floor((totalSec % 3600) / 60);
-  const secs = totalSec % 60;
   const pad = (n: number) => String(n).padStart(2, '0');
-  return { days: pad(days), hours: pad(hours), mins: pad(mins), secs: pad(secs) };
+  return {
+    days: pad(Math.floor(totalSec / 86400)),
+    hours: pad(Math.floor((totalSec % 86400) / 3600)),
+    mins: pad(Math.floor((totalSec % 3600) / 60)),
+    secs: pad(totalSec % 60)
+  };
+}
+
+const reveal = {
+  initial: { opacity: 0, y: 24 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, margin: '-60px' },
+  transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const }
+};
+
+/** 逐字浮現的標題 */
+function HandHeadline({ text, className }: { text: string; className: string }) {
+  return (
+    <h1 className={className} aria-label={text}>
+      {text.split('').map((ch, i) => (
+        <motion.span
+          key={i}
+          aria-hidden="true"
+          className="inline-block"
+          initial={{ opacity: 0, y: 18, rotate: -4 }}
+          animate={{ opacity: 1, y: 0, rotate: 0 }}
+          transition={{ delay: 0.15 + i * 0.035, type: 'spring', stiffness: 220, damping: 18 }}
+        >
+          {ch}
+        </motion.span>
+      ))}
+    </h1>
+  );
+}
+
+/** 拍立得照片＋紙膠帶 */
+function Polaroid({ src, alt, caption, tilt = -2 }: { src: string; alt: string; caption?: string; tilt?: number }) {
+  return (
+    <motion.figure
+      initial={{ opacity: 0, rotate: tilt * 3, y: 20 }}
+      animate={{ opacity: 1, rotate: tilt, y: 0 }}
+      whileHover={{ rotate: 0, scale: 1.02 }}
+      transition={{ type: 'spring', stiffness: 160, damping: 16 }}
+      className="relative bg-card p-3 pb-12 shadow-[3px_3px_0_rgba(31,29,26,0.14)] rounded-sm"
+    >
+      <span className="washi -top-3 left-1/2 -translate-x-1/2 rotate-[-4deg]" />
+      <div className="aspect-[4/3] overflow-hidden bg-paper-2">
+        <img
+          src={src}
+          alt={alt}
+          onError={(e) => {
+            const fig = e.currentTarget.closest('figure') as HTMLElement | null;
+            if (fig) fig.style.display = 'none';
+          }}
+          className="w-full h-full object-cover sepia-[0.12] saturate-[0.92] contrast-[1.03]"
+        />
+      </div>
+      {caption && <figcaption className="absolute bottom-3 inset-x-3 font-hand text-base text-ink-soft text-center truncate">{caption}</figcaption>}
+    </motion.figure>
+  );
 }
 
 export default function NowStatusView({
+  allItems,
   tripStatus,
   effectiveNow,
   timeMode,
   onOpenMapForSpot,
   onOpenTab,
   onOpenTimeMachine,
+  isDebug = false,
   onOpenMtrDrawer,
   onToggleAlternative,
-  altSelections
+  altSelections,
+  onAdjustDelay,
+  onResetDelays,
+  onOpenChecklist
 }: NowStatusViewProps) {
   const cd = getCountdownParts(tripStatus.remainingMs);
 
+  // ───────────────────────── 出發前 ─────────────────────────
   if (tripStatus.phase === 'before') {
-    return (
-      <div className="max-w-6xl mx-auto px-5 sm:px-8 pt-8 sm:pt-12 pb-28 space-y-10">
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center border-b border-[#1C1B19]/15 pb-10">
-          <div className="lg:col-span-7 flex items-start gap-5 sm:gap-7">
-            <div
-              className="hidden sm:block text-xs tracking-[0.45em] text-[#5A554C] font-serif pt-1 border-r border-[#1C1B19]/20 pr-4 select-none"
-              style={{ writingMode: 'vertical-rl' }}
-            >
-              啟期將至・二零二六年十一月廿二日
-            </div>
-
-            <div>
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 border border-[#1B4332]/40 bg-[#1B4332]/10 text-[#1B4332] font-mono text-[11px] tracking-widest mb-4">
-                <span>PRE-DEPARTURE ・ 尚未出發</span>
-              </div>
-
-              <h1 className="font-serif text-3xl sm:text-5xl font-black text-[#1C1B19] leading-[1.18] tracking-tight mb-4">
-                把維港的晚風與九龍的燈火，留給幾日後的我們。
-              </h1>
-
-              <p className="text-sm sm:text-base text-[#4A463F] leading-relaxed mb-6 max-w-xl">
-                行囊正在等待封箱。從桃園第一航廈起飛，四天三夜寄居旺角東「帝京酒店」，穿過百年叮叮車的鈴聲與大嶼山的霧氣，走進這座不曾褪色的電影城市。
-              </p>
-
-              <div className="flex flex-wrap items-center gap-2.5">
-                <button
-                  onClick={() => onOpenTab('map')}
-                  className="px-4 py-2 bg-[#1B4332] text-[#F4EFE6] hover:bg-[#143326] transition font-mono text-xs tracking-wider cursor-pointer inline-flex items-center gap-1.5"
-                >
-                  <IconPin />
-                  <span>先逛香港實景地圖</span>
-                </button>
-                <button
-                  onClick={onOpenTimeMachine}
-                  className="px-4 py-2 border border-[#A63429] text-[#A63429] bg-[#FAF6EE] hover:bg-[#A63429] hover:text-[#F4EFE6] transition font-mono text-xs tracking-wider cursor-pointer inline-flex items-center gap-1.5"
-                >
-                  <IconClock />
-                  <span>切換模擬時光機預覽旅途</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="lg:col-span-5 bg-[#1B4332] text-[#F4EFE6] p-6 sm:p-8 border border-[#1B4332] shadow-[8px_8px_0px_rgba(28,27,25,0.12)]">
-            <div className="flex items-center justify-between pb-3 mb-5 border-b border-[#F4EFE6]/20">
-              <span className="font-mono text-[11px] tracking-[0.2em] text-[#D4C5A9]">COUNTDOWN TO TAKEOFF</span>
-              <span className="font-mono text-[11px] text-[#D4C5A9]">11.22 09:00 報到</span>
-            </div>
-
-            <div className="grid grid-cols-4 gap-2 text-center mb-6">
-              {[
-                [cd.days, 'DAYS'],
-                [cd.hours, 'HRS'],
-                [cd.mins, 'MIN'],
-                [cd.secs, 'SEC']
-              ].map(([val, unit]) => (
-                <div key={unit} className="bg-[#F4EFE6]/10 border border-[#F4EFE6]/15 py-3 px-1">
-                  <span className="block font-mono text-2xl sm:text-3xl font-bold text-white">{val}</span>
-                  <span className="block font-mono text-[10px] tracking-widest text-[#D4C5A9] mt-1">{unit}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="pt-4 border-t border-[#F4EFE6]/20 flex items-center justify-between text-xs">
-              <span className="text-[#D4C5A9] font-mono">FIRST STOP</span>
-              <span className="font-semibold text-white">桃園機場 T1 ・ HB703 報到</span>
-            </div>
-          </div>
-        </section>
-
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-xs tracking-[0.25em] text-[#A63429] uppercase">
-              FLIGHT TICKETS &amp; RESIDENCE
-            </span>
-            <button
-              onClick={() => onOpenTab('itinerary')}
-              className="font-mono text-xs text-[#1B4332] hover:underline cursor-pointer"
-            >
-              查看四日完整行程 →
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            <div className="ticket-notch bg-[#FAF6EE] border border-[#1C1B19]/20 p-6 flex flex-col justify-between">
-              <div>
-                <div className="flex justify-between items-center pb-3 mb-4 border-b border-dashed border-[#1C1B19]/20">
-                  <span className="font-mono text-xs font-bold text-[#1B4332]">OUTBOUND ・ 去程</span>
-                  <span className="font-mono text-xs text-[#5A554C]">2026.11.22 SUN</span>
-                </div>
-                <div className="flex items-baseline justify-between mb-1">
-                  <span className="font-mono text-3xl font-bold text-[#1C1B19]">TPE</span>
-                  <span className="font-mono text-xs text-[#5A554C]">── HB703 ──</span>
-                  <span className="font-mono text-3xl font-bold text-[#1C1B19]">HKG</span>
-                </div>
-                <div className="flex justify-between text-xs text-[#5A554C] mb-5">
-                  <span>桃園機場 T1</span>
-                  <span>大灣區航空 ・ 2h 05m</span>
-                  <span>香港機場</span>
-                </div>
-              </div>
-              <div className="pt-4 border-t border-[#1C1B19]/15 flex justify-between font-mono">
-                <div>
-                  <span className="block text-[10px] text-[#5A554C]">DEPARTURE</span>
-                  <span className="text-lg font-bold text-[#1C1B19]">11:35</span>
-                </div>
-                <div className="text-right">
-                  <span className="block text-[10px] text-[#5A554C]">ARRIVAL</span>
-                  <span className="text-lg font-bold text-[#1B4332]">13:40</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="ticket-notch bg-[#FAF6EE] border border-[#1C1B19]/20 p-6 flex flex-col justify-between">
-              <div>
-                <div className="flex justify-between items-center pb-3 mb-4 border-b border-dashed border-[#1C1B19]/20">
-                  <span className="font-mono text-xs font-bold text-[#A63429]">INBOUND ・ 回程</span>
-                  <span className="font-mono text-xs text-[#5A554C]">2026.11.25 WED</span>
-                </div>
-                <div className="flex items-baseline justify-between mb-1">
-                  <span className="font-mono text-3xl font-bold text-[#1C1B19]">HKG</span>
-                  <span className="font-mono text-xs text-[#5A554C]">── UO116 ──</span>
-                  <span className="font-mono text-3xl font-bold text-[#1C1B19]">TPE</span>
-                </div>
-                <div className="flex justify-between text-xs text-[#5A554C] mb-5">
-                  <span>香港機場 T2</span>
-                  <span>香港快運 ・ 1h 45m</span>
-                  <span>桃園機場</span>
-                </div>
-              </div>
-              <div className="pt-4 border-t border-[#1C1B19]/15 flex justify-between font-mono">
-                <div>
-                  <span className="block text-[10px] text-[#5A554C]">DEPARTURE</span>
-                  <span className="text-lg font-bold text-[#1C1B19]">18:40</span>
-                </div>
-                <div className="text-right">
-                  <span className="block text-[10px] text-[#5A554C]">ARRIVAL</span>
-                  <span className="text-lg font-bold text-[#A63429]">20:25</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-[#FAF6EE] border border-[#1C1B19]/25 p-6 flex flex-col justify-between shadow-[5px_5px_0px_rgba(27,67,50,0.12)]">
-              <div>
-                <div className="flex justify-between items-center pb-3 mb-4 border-b border-[#1C1B19]/15">
-                  <span className="font-mono text-xs font-bold text-[#B8863B]">HOTEL ・ 連住三晚</span>
-                  <span className="font-mono text-xs text-[#5A554C]">旺角東站 D 出口</span>
-                </div>
-                <h3 className="font-serif text-2xl font-bold text-[#1C1B19] mb-1">帝京酒店 Royal Plaza</h3>
-                <p className="text-xs text-[#5A554C] mb-3">九龍旺角太子道西 193 號（直通 MOKO 新世紀廣場）</p>
-                <p className="text-xs text-[#4A463F] leading-relaxed">
-                  下樓即是東鐵線與商場，步行 7 分鐘可達旺角 / 太子站，是這趟四日漫遊最穩妥的九龍基地。
-                </p>
-              </div>
-              <div className="pt-4 mt-4 border-t border-dashed border-[#1C1B19]/20 flex justify-between font-mono text-xs text-[#1B4332] font-semibold">
-                <span>IN 11/22 15:00</span>
-                <span>OUT 11/25 11:00</span>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-    );
+    return <PreDepartureCarousel cd={cd} onOpenTab={onOpenTab} onOpenChecklist={onOpenChecklist} isDebug={isDebug} onOpenTimeMachine={onOpenTimeMachine} />;
   }
 
+  // ───────────────────────── 旅程結束 ─────────────────────────
   if (tripStatus.phase === 'after') {
     return (
-      <div className="max-w-4xl mx-auto px-5 sm:px-8 pt-14 pb-28 text-center">
-        <span className="inline-block px-3 py-1 border border-[#B8863B] text-[#B8863B] font-mono text-xs tracking-widest mb-5">
-          JOURNEY COMPLETED ・ 旅程圓滿
-        </span>
-        <h1 className="font-serif text-4xl sm:text-5xl font-black text-[#1C1B19] leading-tight mb-5">
-          底片已滿，九龍的夜色收進行囊。
-        </h1>
-        <p className="text-base text-[#4A463F] leading-relaxed max-w-xl mx-auto mb-8">
-          UO116 已於 11 月 25 日平安返抵桃園。感謝這四天三夜在叮叮車、天星小輪與大嶼山海風裡寫下的每一頁記憶。
+      <div className="max-w-3xl mx-auto px-5 sm:px-8 pt-16 pb-36 text-center">
+        <motion.div initial={{ scale: 0, rotate: -40 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 160, damping: 12 }}>
+          <Seal text="圓滿" className="w-20 h-20 text-xl mb-6" />
+        </motion.div>
+        <HandHeadline text="底片已滿，九龍的夜色收進行囊。" className="font-hand text-4xl sm:text-5xl font-bold leading-snug mb-6" />
+        <p className="text-[15px] text-ink-soft leading-[1.9] max-w-xl mx-auto mb-8">
+          UO116 已於 11 月 25 日平安返抵桃園。謝謝這四天三夜，在叮叮車和天星小輪上，還有大嶼山的海風裡寫下的每一頁。
         </p>
         <div className="flex flex-wrap justify-center gap-3">
-          <button
-            onClick={() => onOpenTab('itinerary')}
-            className="px-5 py-2.5 bg-[#1B4332] text-[#F4EFE6] font-mono text-xs cursor-pointer"
-          >
-            回顧四日完整行程
+          <button onClick={() => onOpenTab('itinerary')} className="h-11 px-6 bg-ink text-paper text-sm font-bold cursor-pointer">
+            回顧四日行程
           </button>
-          <button
-            onClick={onOpenTimeMachine}
-            className="px-5 py-2.5 border border-[#1C1B19]/25 bg-[#FAF6EE] font-mono text-xs cursor-pointer"
-          >
-            開啟時光機重溫時刻
-          </button>
+          {isDebug && (
+            <button onClick={onOpenTimeMachine} className="h-11 px-6 border border-ink/20 text-sm font-bold cursor-pointer">
+              時光機重溫
+            </button>
+          )}
         </div>
       </div>
     );
   }
 
+  // ───────────────────────── 旅途中 ─────────────────────────
+  return (
+    <DuringView
+      allItems={allItems}
+      tripStatus={tripStatus}
+      effectiveNow={effectiveNow}
+      timeMode={timeMode}
+      cd={cd}
+      onOpenMapForSpot={onOpenMapForSpot}
+      onOpenTab={onOpenTab}
+      onOpenMtrDrawer={onOpenMtrDrawer}
+      onToggleAlternative={onToggleAlternative}
+      altSelections={altSelections}
+      onAdjustDelay={onAdjustDelay}
+      onResetDelays={onResetDelays}
+    />
+  );
+}
+
+function DuringView({
+  allItems,
+  tripStatus,
+  effectiveNow,
+  timeMode,
+  cd,
+  onOpenMapForSpot,
+  onOpenTab,
+  onOpenMtrDrawer,
+  onToggleAlternative,
+  altSelections,
+  onAdjustDelay,
+  onResetDelays
+}: {
+  onAdjustDelay: (itemId: string, deltaMin: number) => void;
+  onResetDelays: (day?: number) => void;
+  allItems: ResolvedTripItem[];
+  tripStatus: TripStatus;
+  effectiveNow: Date;
+  timeMode: 'live' | 'sim';
+  cd: ReturnType<typeof getCountdownParts>;
+  onOpenMapForSpot: (item: ResolvedTripItem, dayNum: number) => void;
+  onOpenTab: (tab: AppTab) => void;
+  onOpenMtrDrawer: (mtrId: string) => void;
+  onToggleAlternative: (itemId: string, altId: string | null) => void;
+  altSelections: Record<string, string>;
+}) {
   const activeItem = tripStatus.currentItem;
   const nextItem = tripStatus.nextItem;
   const focusItem = activeItem || nextItem;
+  const dayNum = focusItem?.day ?? 1;
+  const dayObj = ITINERARY_DAYS.find((d) => d.day === dayNum) ?? ITINERARY_DAYS[0];
+  const dayItems = useMemo(() => allItems.filter((i) => i.day === dayNum), [allItems, dayNum]);
+  const nowMs = effectiveNow.getTime();
+
+  // 今日路綫上的列車位置
+  const progress = useMemo(() => {
+    for (let i = 0; i < dayItems.length; i++) {
+      const it = dayItems[i];
+      if (nowMs < it.startMs) return Math.max(0, i - 0.5);
+      if (nowMs < it.endMs) return i + Math.min(0.9, (nowMs - it.startMs) / Math.max(1, it.endMs - it.startMs)) * 0.5;
+    }
+    return dayItems.length - 1;
+  }, [dayItems, nowMs]);
+
   const bearingInfo = focusItem?.isHK ? getBearingAndDistance(HOTEL_COORDS, focusItem.coords) : null;
-  const hasAlt = Boolean(focusItem?.alternatives && focusItem.alternatives.length > 0);
   const isAltActive = Boolean(focusItem && altSelections[focusItem.id]);
 
-  return (
-    <div className="max-w-6xl mx-auto px-5 sm:px-8 pt-8 pb-28 space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1C1B19]/15 pb-4">
-        <div className="flex items-center gap-3">
-          <span className="px-2.5 py-1 bg-[#A63429] text-[#F4EFE6] font-mono text-xs tracking-widest font-bold">
-            {activeItem ? `DAY 0${activeItem.day} ・ 此刻進行中` : `DAY 0${nextItem?.day} ・ 轉場時間`}
-          </span>
-          <span className="font-mono text-xs text-[#5A554C]">
-            {timeMode === 'sim' ? '模擬時刻：' : '現在時間：'}
-            {effectiveNow.toLocaleTimeString('zh-TW', { hour12: false })}
-          </span>
-        </div>
+  // 下一段交通：正在景點中 → 前往下一站；轉場中 → 前往即將抵達的景點
+  const legTarget = activeItem ? nextItem : focusItem;
+  const legFrom = legTarget ? dayItems[dayItems.findIndex((i) => i.id === legTarget.id) - 1] : undefined;
 
-        <span className="font-mono text-xs font-bold text-[#1B4332]">
-          {activeItem ? `本時段剩餘 ${cd.hours}:${cd.mins}:${cd.secs}` : `距下一站 ${cd.hours}:${cd.mins}:${cd.secs}`}
-        </span>
+  return (
+    <div className="max-w-6xl mx-auto px-4 sm:px-8 pt-6 pb-36 space-y-6">
+      {/* 車廂顯示屏 */}
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-card border border-ink/10 overflow-hidden"
+      >
+        <div className="h-1.5" style={{ backgroundColor: dayObj.stationColor }} />
+        <div className="px-5 sm:px-7 pt-5 pb-3 flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="mb-2"><DayWeatherBadge date={dayObj.date} /></div>
+            <p className="font-mono text-[10px] tracking-[0.3em] text-ink/45">
+              DAY 0{dayNum} ・ {dayObj.dateLabel} ・ {timeMode === 'sim' ? 'SIMULATED' : 'LIVE'} {effectiveNow.toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' })}
+            </p>
+            <p className="led text-xs mt-2">{activeItem ? '此刻 NOW' : '列車即將到站 ARRIVING'}</p>
+            <AnimatePresence mode="wait">
+              <motion.h1
+                key={focusItem?.id}
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -30 }}
+                className="font-serif text-3xl sm:text-4xl font-medium tracking-wide mt-1 leading-tight"
+              >
+                {focusItem?.title ?? '城市漫遊中'}
+              </motion.h1>
+            </AnimatePresence>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="font-mono text-[10px] tracking-widest text-ink/45">{activeItem ? '本段剩餘' : '距離抵達'}</p>
+            <p className="led text-3xl sm:text-4xl font-bold tabular-nums">
+              {cd.hours}:{cd.mins}
+              <span className="text-lg opacity-70">:{cd.secs}</span>
+            </p>
+          </div>
+        </div>
+        <div className="px-3 sm:px-5 pb-4">
+          <LineProgress
+            color={dayObj.stationColor}
+            progress={progress}
+            stops={dayItems.map((it) => ({ id: it.id, label: it.title.length > 8 ? `${it.title.slice(0, 8)}…` : it.title, sub: it.timeLabel.slice(0, 5) }))}
+          />
+        </div>
+      </motion.section>
+
+      {/* 延誤調整＋下一段交通 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {focusItem && (
+          <motion.div {...reveal} className="bg-card border border-ink/15 p-4 shadow-[3px_3px_0_rgba(31,29,26,0.1)]">
+            <DelayControl item={focusItem} onAdjust={onAdjustDelay} onResetDay={onResetDelays} />
+          </motion.div>
+        )}
+        {legTarget && (
+          <motion.div {...reveal} className="bg-card border border-ink/15 p-4 shadow-[3px_3px_0_rgba(31,29,26,0.1)]">
+            <p className="font-hand font-bold mb-2">
+              怎麼去 <span className="text-accent">{legTarget.title}</span>
+            </p>
+            <TransitLeg
+              steps={legTarget.transit}
+              fromLabel={legFrom ? `從 ${legFrom.title}` : '從帝京酒店出發'}
+              fromCoords={legFrom?.coords ?? HOTEL_COORDS}
+              toCoords={legTarget.coords}
+              toMtrId={legTarget.mtrId}
+              onOpenMtr={onOpenMtrDrawer}
+            />
+          </motion.div>
+        )}
       </div>
 
+      {/* 焦點景點 */}
       {focusItem && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-[#FAF6EE] border border-[#1C1B19]/25 p-5 sm:p-7 shadow-[7px_7px_0px_rgba(27,67,50,0.12)]">
-          {focusItem.image && (
-            <div className="lg:col-span-6 overflow-hidden border border-[#1C1B19]/15 bg-[#EFE8DA] aspect-[16/10]">
-              <img
-                src={focusItem.image}
-                alt={focusItem.title}
-                onError={(e) => {
-                  if (e.currentTarget.parentElement) {
-                    e.currentTarget.parentElement.style.display = 'none';
-                  }
-                }}
-                className="w-full h-full object-cover sepia-[0.08] contrast-[1.03]"
-              />
-            </div>
-          )}
+        <AnimatePresence mode="wait">
+          <motion.section
+            key={focusItem.id + (isAltActive ? '-alt' : '')}
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ type: 'spring', stiffness: 180, damping: 22 }}
+            className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-start"
+          >
+            {focusItem.image && (
+              <div className="lg:col-span-5 px-4 sm:px-8 lg:px-2 pt-4">
+                <Polaroid src={focusItem.image} alt={focusItem.title} caption={`${focusItem.district}・${focusItem.timeLabel}`} />
+              </div>
+            )}
 
-          <div className={`${focusItem.image ? 'lg:col-span-6' : 'lg:col-span-12'} flex flex-col justify-between gap-4`}>
-            <div>
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                <span className="font-mono text-xs text-[#5A554C]">
-                  {focusItem.district} ・ {focusItem.timeLabel}
+            <div className={`${focusItem.image ? 'lg:col-span-7' : 'lg:col-span-12'} space-y-4`}>
+              <div className="flex flex-wrap items-center gap-2">
+                {focusItem.photoSpot?.hot && <PhotoSpotBadge />}
+                <SunEventTag date={dayObj.date} startMs={focusItem.startMs} endMs={focusItem.endMs} />
+                <span className="px-2.5 py-1 text-[11px] font-bold text-white" style={{ backgroundColor: focusItem.districtColor }}>
+                  {focusItem.district}
                 </span>
+                <span className="font-mono text-xs text-ink-soft">{focusItem.timeLabel}</span>
                 {bearingInfo && Number(bearingInfo.distanceKm) > 0 && (
-                  <span className="font-mono text-xs font-bold text-[#A63429]">
+                  <span className="font-mono text-xs font-bold text-accent">
                     距帝京 {bearingInfo.dirLabel} {bearingInfo.distanceKm} km
                   </span>
                 )}
               </div>
 
-              <h1 className="font-serif text-3xl sm:text-4xl font-black text-[#1C1B19] leading-tight mb-2">
-                {activeItem ? focusItem.title : `準備前往：${focusItem.title}`}
-              </h1>
-
-              <p className="font-mono text-xs text-[#1B4332] mb-4 inline-flex items-center gap-1">
-                <IconPin />
-                <span>{focusItem.location}</span>
+              <p className="text-sm text-jade font-semibold inline-flex items-center gap-1.5">
+                <IconPin /> {focusItem.location}
               </p>
+              {focusItem.isHK && <PaymentBadges payment={focusItem.payment} />}
+              <TicketSlot itemId={focusItem.id} hint={focusItem.ticketHint} />
+              {focusItem.photoSpot && <PhotoInspo spot={focusItem.photoSpot} title={focusItem.title} location={focusItem.location} image={focusItem.image} />}
 
-              {hasAlt && focusItem.alternatives && (
-                <div className="mb-4 p-3 bg-[#EFE8DA]/80 border border-[#1C1B19]/15">
-                  <span className="block font-mono text-[10px] text-[#5A554C] mb-1.5">
-                    現場人太多或下雨？即時切換備案：
-                  </span>
+              {focusItem.alternatives && focusItem.alternatives.length > 0 && (
+                <div className="rounded-2xl bg-paper-2/70 p-3">
+                  <p className="font-hand text-sm text-ink-soft mb-2">人太多或下雨？換個備案：</p>
                   <div className="flex flex-wrap gap-1.5">
-                    <button
-                      onClick={() => onToggleAlternative(focusItem.id, null)}
-                      className={`px-2.5 py-1 text-[11px] font-mono border cursor-pointer ${
-                        !isAltActive
-                          ? 'bg-[#1B4332] text-[#F4EFE6] border-[#1B4332]'
-                          : 'bg-[#FAF6EE] text-[#1C1B19] border-[#1C1B19]/20'
-                      }`}
-                    >
+                    <AltChip active={!isAltActive} onClick={() => onToggleAlternative(focusItem.id, null)}>
                       原定行程
-                    </button>
+                    </AltChip>
                     {focusItem.alternatives.map((alt) => (
-                      <button
-                        key={alt.id}
-                        onClick={() => onToggleAlternative(focusItem.id, alt.id)}
-                        className={`px-2.5 py-1 text-[11px] font-mono border cursor-pointer inline-flex items-center gap-1 ${
-                          isAltActive
-                            ? 'bg-[#A63429] text-[#F4EFE6] border-[#A63429]'
-                            : 'bg-[#FAF6EE] text-[#A63429] border-[#A63429]/40'
-                        }`}
-                      >
-                        <IconSwap />
-                        <span>{alt.label}</span>
-                      </button>
+                      <AltChip key={alt.id} active={altSelections[focusItem.id] === alt.id} accent onClick={() => onToggleAlternative(focusItem.id, alt.id)}>
+                        <IconSwap /> {alt.label}
+                      </AltChip>
                     ))}
                   </div>
                 </div>
               )}
 
-              <p className="text-sm text-[#4A463F] leading-relaxed mb-3">{focusItem.description}</p>
+              <p className="text-[15px] text-ink-soft leading-[1.9]">{focusItem.description}</p>
 
-              <div className="p-3 bg-[#F4EFE6] border-l-2 border-[#B8863B] text-xs text-[#5A554C]">
-                <strong className="text-[#B8863B]">手帖筆記：</strong>
-                {focusItem.tips}
+              <div className="relative rounded-2xl paper-card border border-ink/8 p-4 pl-5 shadow-[3px_3px_0_rgba(31,29,26,0.14)]">
+                <span className="absolute left-0 top-4 bottom-4 w-1 bg-brass" />
+                <p className="font-hand text-brass font-bold mb-0.5">手帖筆記</p>
+                <p className="font-hand text-[15px] text-ink-soft leading-relaxed">{focusItem.tips}</p>
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-1">
+                {focusItem.isHK && (
+                  <ActionBtn primary onClick={() => onOpenMapForSpot(focusItem, focusItem.day)}>
+                    <IconPin /> 地圖方位
+                  </ActionBtn>
+                )}
+                {focusItem.isHK && (
+                  <ActionBtn href={getGoogleMapsDirectionsUrl(HOTEL_COORDS, focusItem.coords, 'transit')} red>
+                    <IconTransit /> 帝京出發導航
+                  </ActionBtn>
+                )}
+                {focusItem.mtrId && (
+                  <ActionBtn onClick={() => onOpenMtrDrawer(focusItem.mtrId!)}>
+                    <span className="w-3 h-3 rounded-full border-2 border-accent" /> 港鐵怎麼搭
+                  </ActionBtn>
+                )}
+                <ActionBtn href={getGoogleMapsUrl(focusItem)}>
+                  <IconArrowUpRight /> Google
+                </ActionBtn>
               </div>
             </div>
-
-            <div className="flex flex-wrap gap-2 pt-3 border-t border-dashed border-[#1C1B19]/20">
-              {focusItem.isHK && (
-                <button
-                  onClick={() => onOpenMapForSpot(focusItem, focusItem.day)}
-                  className="px-4 py-2 bg-[#1B4332] text-[#F4EFE6] hover:bg-[#143326] transition font-mono text-xs cursor-pointer inline-flex items-center gap-1.5"
-                >
-                  <IconPin />
-                  <span>在地圖查看方位</span>
-                </button>
-              )}
-              <a
-                href={getGoogleMapsUrl(focusItem)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 border border-[#1C1B19]/25 bg-[#F4EFE6] text-[#1C1B19] hover:bg-[#1C1B19] hover:text-[#F4EFE6] transition font-mono text-xs inline-flex items-center gap-1.5"
-              >
-                <IconArrowUpRight />
-                <span>Google 地點</span>
-              </a>
-              {focusItem.isHK && (
-                <a
-                  href={getGoogleMapsDirectionsUrl(HOTEL_COORDS, focusItem.coords, 'transit')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 bg-[#A63429] text-[#F4EFE6] hover:bg-[#8A2920] transition font-mono text-xs inline-flex items-center gap-1.5"
-                >
-                  <IconTransit />
-                  <span>帝京出發導航</span>
-                </a>
-              )}
-              {focusItem.mtrId && (
-                <button
-                  onClick={() => onOpenMtrDrawer(focusItem.mtrId!)}
-                  className="px-3 py-2 font-mono text-xs text-[#1B4332] hover:underline cursor-pointer"
-                >
-                  查港鐵轉乘 →
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+          </motion.section>
+        </AnimatePresence>
       )}
 
-      {nextItem && (
-        <div className="p-4 bg-[#EFE8DA] border border-[#1C1B19]/15 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <span className="font-mono text-[10px] tracking-widest text-[#A63429] block mb-0.5">
-              UP NEXT ・ 下一站預告
-            </span>
-            <p className="font-serif text-base font-bold text-[#1C1B19]">
-              {nextItem.timeLabel} — {nextItem.title}
-            </p>
-          </div>
-          <button
-            onClick={() => onOpenTab('itinerary')}
-            className="font-mono text-xs text-[#1B4332] hover:underline cursor-pointer self-start sm:self-auto"
-          >
-            檢視完整四日行程 →
-          </button>
-        </div>
+      {nextItem && activeItem && (
+        <motion.button
+          {...reveal}
+          onClick={() => onOpenTab('itinerary')}
+          className="w-full text-left cursor-pointer group"
+        >
+          <StationSign
+            kicker="下一站 NEXT STATION"
+            zh={nextItem.title}
+            en={`${nextItem.timeLabel} ・ ${nextItem.location}`}
+            color={ITINERARY_DAYS.find((d) => d.day === nextItem.day)?.stationColor ?? '#53B7E8'}
+            className="group-hover:-translate-y-1 transition-transform"
+          />
+        </motion.button>
       )}
     </div>
+  );
+}
+
+function AltChip({ active, accent, onClick, children }: { active: boolean; accent?: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <motion.button
+      whileTap={{ scale: 0.94 }}
+      onClick={onClick}
+      className={`h-8 px-3 text-xs font-bold inline-flex items-center gap-1 cursor-pointer transition-colors ${
+        active ? (accent ? 'bg-accent text-white' : 'bg-ink text-paper') : accent ? 'bg-card text-accent' : 'bg-card text-ink'
+      }`}
+    >
+      {children}
+    </motion.button>
+  );
+}
+
+function ActionBtn({
+  children,
+  onClick,
+  href,
+  primary,
+  red
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  href?: string;
+  primary?: boolean;
+  red?: boolean;
+}) {
+  const cls = `h-10 px-4 text-[13px] font-bold inline-flex items-center gap-1.5 cursor-pointer transition ${
+    primary ? 'bg-ink text-paper' : red ? 'bg-accent text-white' : 'bg-card border border-ink/12 hover:border-ink/40'
+  }`;
+  return href ? (
+    <motion.a whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }} href={href} target="_blank" rel="noopener noreferrer" className={cls}>
+      {children}
+    </motion.a>
+  ) : (
+    <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }} onClick={onClick} className={cls}>
+      {children}
+    </motion.button>
   );
 }

@@ -1,0 +1,67 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # public/mtr (~127 MB of MTR PDFs) and public/pdfjs are not committed.
+      # Restore them from cache, then fetch anything missing from mtr.com.hk
+      # and copy pdf.js cmaps/fonts from node_modules.
+      - name: Restore MTR PDF cache
+        uses: actions/cache@v4
+        with:
+          path: public/mtr
+          key: mtr-pdfs-${{ hashFiles('src/data/mtrNetwork.ts') }}
+          restore-keys: mtr-pdfs-
+
+      - name: Sync MTR assets
+        run: npm run sync:mtr || echo "::warning::Some MTR PDFs failed to download; the app links to mtr.com.hk for those."
+
+      - id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_BASE: ${{ steps.pages.outputs.base_path }}/
+          # Optional: without it the app falls back to OpenStreetMap tiles.
+          VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
+
+      - run: touch dist/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

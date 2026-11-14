@@ -1,10 +1,30 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
-  --font-sans: "Noto Sans TC", system-ui, sans-serif;
-  --font-serif: "Noto Serif TC", Georgia, serif;
-  --font-mono: "IBM Plex Mono", monospace;
+  /* 日系文青色票（淺色）；暗黑模式於 html.dark 覆寫 */
+  --color-paper: #F7F5F0;
+  --color-paper-2: #ECE8E0;
+  --color-card: #FFFFFF;
+  --color-ink: #2B2A28;
+  --color-ink-soft: #6B665E;
+  --color-accent: #C8102E;
+  --color-jade: #1B4332;
+  --color-brass: #B8863B;
+  /* 文青印刷感：幾乎不用圓角 */
+  --radius-xs: 1px;
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --radius-xl: 3px;
+  --radius-2xl: 3px;
+  --radius-3xl: 4px;
+  --font-hand: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+  --font-sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --font-serif: "Noto Serif TC", "PingFang TC", Georgia, serif;
+  --font-mono: "IBM Plex Mono", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", ui-monospace, SFMono-Regular, monospace;
 }
 
 @layer base {
@@ -32,8 +52,8 @@
   }
 
   body {
-    background-color: #F4EFE6;
-    color: #1C1B19;
+    background-color: var(--color-paper);
+    color: #2B2A28;
     font-family: var(--font-sans);
     overflow-x: hidden;
   }
@@ -61,7 +81,7 @@
   width: 18px;
   height: 18px;
   border-radius: 9999px;
-  background-color: #F4EFE6;
+  background-color: var(--color-paper);
   border: 1px solid rgba(28, 27, 25, 0.15);
   top: 50%;
   transform: translateY(-50%);
@@ -77,7 +97,7 @@
 }
 .leaflet-popup-content-wrapper {
   background: #FAF6EE;
-  color: #1C1B19;
+  color: #2B2A28;
   border: 1px solid rgba(28, 27, 25, 0.25);
   border-radius: 0;
   box-shadow: 4px 4px 0px rgba(27, 67, 50, 0.16);
@@ -86,3 +106,175 @@
   background: #FAF6EE;
   border: 1px solid rgba(28, 27, 25, 0.2);
 }
+
+/* ───────── 港鐵路網動畫 ───────── */
+@keyframes mtr-march {
+  to { stroke-dashoffset: -32; }
+}
+.mtr-march {
+  animation: mtr-march 1.2s linear infinite;
+}
+@keyframes mtr-pulse {
+  0% { transform: scale(0.45); opacity: 0.45; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+.mtr-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mtr-pulse 1.8s ease-out infinite;
+}
+@keyframes mtr-spin {
+  to { transform: rotate(360deg); }
+}
+.mtr-spin-slow {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mtr-spin 14s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mtr-march, .mtr-pulse, .mtr-spin-slow { animation: none; }
+}
+
+/* ───────── 文青 × 港鐵 設計語彙 ───────── */
+
+/* 月台牆身馬賽克磚：用 --tile 指定主色，自動產生深淺錯落的小方磚 */
+.mtr-tiles {
+  --tile: #53B7E8;
+  background-color: var(--tile);
+  background-image:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.55) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.55) 1px, transparent 1px),
+    linear-gradient(45deg, rgba(0, 0, 0, 0.07) 25%, transparent 25%, transparent 75%, rgba(0, 0, 0, 0.07) 75%),
+    linear-gradient(45deg, rgba(255, 255, 255, 0.12) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.12) 75%);
+  background-size: 9px 9px, 9px 9px, 18px 18px, 18px 18px;
+  background-position: 0 0, 0 0, 0 0, 9px 9px;
+}
+
+/* 紙張紋理（卡片用） */
+.paper-card {
+  background-color: var(--color-card);
+  background-image: radial-gradient(rgba(28, 27, 25, 0.035) 1px, transparent 1px);
+  background-size: 6px 6px;
+}
+
+/* 筆記本橫線 */
+.ruled {
+  background-image: repeating-linear-gradient(transparent, transparent 27px, rgba(91, 155, 213, 0.22) 27px, rgba(91, 155, 213, 0.22) 28px);
+  line-height: 28px;
+}
+
+/* 紙膠帶 */
+.washi {
+  position: absolute;
+  width: 84px;
+  height: 22px;
+  background: repeating-linear-gradient(45deg, rgba(247, 197, 72, 0.75) 0 6px, rgba(247, 197, 72, 0.55) 6px 12px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  opacity: 0.9;
+}
+
+/* 月台黃線（請小心月台空隙） */
+.platform-edge {
+  background:
+    radial-gradient(circle, rgba(31, 29, 26, 0.55) 1.4px, transparent 1.6px) 0 50% / 10px 10px repeat-x,
+    #F2C230;
+}
+
+/* 跑馬燈 */
+@keyframes marquee {
+  to { transform: translateX(-50%); }
+}
+.marquee-track {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: marquee 32s linear infinite;
+}
+
+/* LED 點陣字（車廂顯示屏） */
+.led {
+  font-family: var(--font-mono);
+  color: var(--color-accent);
+  letter-spacing: 0.06em;
+}
+
+.vertical-rl {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
+}
+
+/* Tailwind v4 只輸出有被 class 使用到的變數；inline style 用到的字型變數在此明確宣告 */
+:root {
+  --font-hand: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+}
+
+
+/* ───────── 暗黑模式（夜行版） ───────── */
+html.dark {
+  color-scheme: dark;
+  --color-paper: #15171B;
+  --color-paper-2: #23262C;
+  --color-card: #1D2025;
+  --color-ink: #ECE8E1;
+  --color-ink-soft: #A39E95;
+  --color-accent: #F0525A;
+  --color-jade: #7CC4A0;
+  --color-brass: #DDB06A;
+}
+html.dark .paper-grain { opacity: 0.4; mix-blend-mode: screen; }
+html.dark .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.88) contrast(0.92) saturate(0.6); }
+html.dark .leaflet-container { background: #1b1d21; }
+html.dark img.photo { filter: brightness(0.9) saturate(0.85); }
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+/* 標題字（明朝體）不要太粗，保持日系的輕盈 */
+.font-hand { letter-spacing: 0.04em; }
+.font-hand.font-bold { font-weight: 600; }
+
+.window-light {
+  background:
+    radial-gradient(ellipse 55% 45% at 88% 8%, rgba(255, 226, 180, 0.55) 0%, rgba(255, 226, 180, 0) 70%),
+    radial-gradient(ellipse 50% 40% at 0% 100%, rgba(190, 220, 240, 0.35) 0%, rgba(190, 220, 240, 0) 70%);
+}
+html.dark .window-light {
+  background:
+    radial-gradient(ellipse 55% 45% at 85% 5%, rgba(255, 180, 90, 0.16) 0%, rgba(255, 180, 90, 0) 70%),
+    radial-gradient(ellipse 60% 45% at 10% 100%, rgba(83, 183, 232, 0.12) 0%, rgba(83, 183, 232, 0) 70%);
+}
+
+/* OSM 底圖調成日系淡色 */
+.leaflet-tile-pane { filter: saturate(0.35) sepia(0.12) brightness(1.04) contrast(0.95); }
+
+/* Google 底圖已有自訂樣式，不套 OSM 的濾鏡 */
+.gmaps .leaflet-tile-pane,
+html.dark .gmaps .leaflet-tile-pane { filter: none; }
+
+/* 輪播：圖片不觸發瀏覽器原生拖曳，避免搶走左右滑動 */
+.carousel-slide img { -webkit-user-drag: none; user-select: none; }
+
+/* 熱門拍照打卡點：IG 漸層外框 */
+.photo-spot-card {
+  border: 2px solid transparent !important;
+  background:
+    linear-gradient(var(--color-card), var(--color-card)) padding-box,
+    linear-gradient(45deg, #F58529, #FEDA77, #DD2A7B, #8134AF, #515BD4) border-box !important;
+  box-shadow: 0 10px 24px -14px rgba(221, 42, 123, 0.55) !important;
+}
+
+/* 扶手電梯出口名稱 */
+.leaflet-tooltip.esc-exit-label {
+  padding: 1px 5px;
+  font: 600 10px 'Noto Sans TC', sans-serif;
+  color: #2E8B8B;
+  border: 1px solid rgba(46, 139, 139, 0.4);
+  box-shadow: none;
+}
+.leaflet-tooltip.esc-exit-label::before { display: none; }

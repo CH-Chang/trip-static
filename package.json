@@ -7,13 +7,18 @@
     "dev": "vite --port 8080 --host",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
-    "preview": "vite preview --port 8080"
+    "preview": "vite preview --port 8080",
+    "sync:mtr": "node scripts/sync-mtr-assets.mjs"
   },
   "dependencies": {
     "gsap": "^3.15.1",
     "leaflet": "^1.9.4",
+    "leaflet.gridlayer.googlemutant": "^0.16.0",
+    "motion": "^12.43.0",
+    "pdfjs-dist": "^5.7.284",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-zoom-pan-pinch": "^3.7.0",
     "three": "^0.187.0"
   },
   "devDependencies": {

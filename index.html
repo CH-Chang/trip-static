@@ -2,16 +2,24 @@
 <html lang="zh-Hant" class="scroll-smooth">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#F7F5F0" />
+  <script>
+    // 載入前先套用主題，避免閃爍
+    try {
+      var t = localStorage.getItem('hk-trip-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      if (t === 'dark') document.documentElement.classList.add('dark');
+    } catch (e) {}
+  </script>
   <title>香江拾光・四日手帖 | 11/22–11/25 香港旅行誌</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@500;700;900&display=swap"
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Serif+TC:wght@400;500;600;700&display=swap"
     rel="stylesheet"
   />
 </head>
-<body class="antialiased selection:bg-[#1B4332] selection:text-[#F4EFE6]">
+<body class="antialiased selection:bg-ink selection:text-paper">
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
