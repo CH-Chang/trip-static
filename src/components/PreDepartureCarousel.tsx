@@ -98,9 +98,11 @@ export default function PreDepartureCarousel({ cd, onOpenTab, onOpenChecklist, i
       <LightParticles />
 
       {/* 頁首細資訊列 */}
-      <div className="absolute top-0 inset-x-0 px-5 sm:px-12 pt-4 flex items-center justify-between font-mono text-[10px] tracking-[0.25em] text-ink/50 pointer-events-none">
-        <span>HONG KONG JOURNAL ・ 2026.11.22—25</span>
-        <span>
+      <div className="absolute top-0 inset-x-0 px-5 sm:px-12 pt-4 flex items-center justify-between gap-3 font-mono text-[10px] tracking-[0.18em] sm:tracking-[0.25em] text-ink/50 pointer-events-none">
+        <span className="min-w-0 truncate">
+          <span className="hidden sm:inline">HONG KONG JOURNAL ・ </span>2026.11.22—25
+        </span>
+        <span className="shrink-0">
           {slide.no} / 0{SLIDES.length}
         </span>
       </div>

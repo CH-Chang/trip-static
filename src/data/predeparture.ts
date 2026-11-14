@@ -36,18 +36,18 @@ export const PRE_DEPARTURE_NOTES: PreDepartureNote[] = [
   {
     id: 'octopus',
     color: '#007DC5',
-    title: '交通卡：八達通或感應信用卡',
-    body: '港鐵閘口可直接拍 Visa 或 Mastercard 等感應式信用卡；搭巴士和小巴，或是叮叮車，則以八達通最方便，放進 iPhone 錢包或用實體卡都可以。',
-    alert: '部分台灣發行的卡片可能無法為手機八達通儲值，建議備實體卡',
-    link: { label: '八達通官網', url: 'https://www.octopus.com.hk/tc/consumer/index.html' },
+    title: '交通：不用八達通，直接感應信用卡',
+    body: '這趟全程不辦八達通。港鐵閘口、天星小輪閘機、叮叮車和城巴都能直接感應 Visa 或 Mastercard 信用卡，也可以用綁好卡的 Apple Pay。每人各用一張卡或一支手機進出，不能三個人共用同一張卡。',
+    alert: '出發前確認每人的卡都有感應付款功能，並開通海外交易',
+    link: { label: '港鐵感應式付款說明', url: 'https://www.mtr.com.hk/ch/customer/main/contactless_payment.html' },
     checklistId: 'pay-octopus'
   },
   {
     id: 'cash',
     color: '#923011',
     title: '現金：港幣準備一些',
-    body: '茶餐廳和老字號餅店，還有街邊小吃，不少只收現金或八達通。建議帶 HK$1,500–2,000 現金，其餘刷卡。',
-    alert: '各店付款方式見行程頁的「付款」標籤'
+    body: '茶餐廳和老字號店家，還有街邊小吃和珍妮曲奇，很多只收現金。三人合計準備 HK$2,500 到 3,000，每人約 HK$850 到 1,000，其餘刷卡。換鈔請換 HK$100 和 HK$500 面額，很多店家不收 HK$1,000 大鈔。',
+    alert: '各店付款方式見行程頁的付款標籤；祥興記生煎包反而不收現金，要刷卡'
   },
   {
     id: 'esim',
@@ -67,7 +67,7 @@ export const PRE_DEPARTURE_NOTES: PreDepartureNote[] = [
     id: 'airport',
     color: '#F7943E',
     title: '機場：報到時間與行李',
-    body: '去程 11/22 09:00 前到桃園 T1；回程 UO116 建議 15:40 前到香港機場 T2 報到。廉航手提行李重量檢查嚴格。',
+    body: '去程 11/22 09:00 從家出發，約 09:35 到桃園 T1；回程 UO116 建議 15:40 前到香港機場 T2 報到。廉航手提行李重量檢查嚴格。',
     alert: '香港快運手提行李限重請以航空公司官網為準',
     link: { label: '香港快運官網行李規定', url: 'https://www.hkexpress.com/zh-hk/' }
   },
@@ -83,7 +83,7 @@ export const PRE_DEPARTURE_NOTES: PreDepartureNote[] = [
 /** 機場接送（第一天）— 預約資訊待填 */
 export const AIRPORT_TRANSFER = {
   title: '機場接送 → 帝京酒店',
-  date: '11/22 週日約 14:30 出發',
+  date: '11/22 週日約 14:40 出發',
   note: '入境並提領行李後，依預約資訊到集合點；車程約 45 分鐘直達旺角東帝京酒店。',
   /** 業者、聯絡電話、集合點等預約後填入 */
   provider: '',

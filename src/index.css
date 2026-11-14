@@ -235,6 +235,12 @@ body {
   transition: background-color 0.4s ease, color 0.4s ease;
 }
 
+/* 保險：任何元素超出螢幕寬度都不會讓整頁可以左右拖；用 clip 不用 hidden，sticky header 才不會失效 */
+html,
+body {
+  overflow-x: clip;
+}
+
 /* 標題字（明朝體）不要太粗，保持日系的輕盈 */
 .font-hand { letter-spacing: 0.04em; }
 .font-hand.font-bold { font-weight: 600; }

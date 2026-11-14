@@ -321,7 +321,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
           <button onClick={() => switchTab('now')} className="flex items-center gap-2.5 cursor-pointer shrink-0">
             <motion.span whileHover={{ rotate: 8, scale: 1.06 }} className="inline-flex">
-              <Seal text="港" className="w-9 h-9 text-lg bg-card" />
+              <Seal text="港" className="w-8 h-8 sm:w-9 sm:h-9 text-base sm:text-lg bg-card" />
             </motion.span>
             <span className="hidden md:flex flex-col leading-none">
               <span className="font-hand font-bold text-lg tracking-[0.18em] text-ink">香江拾光</span>
@@ -329,7 +329,7 @@ export default function App() {
             </span>
           </button>
 
-          <nav className="flex items-center gap-0.5 p-1 bg-ink/5">
+          <nav className="flex min-w-0 items-center gap-0.5 p-0.5 sm:p-1 bg-ink/5">
             {tabs.map((tab) => {
               const active = activeTab === tab.id;
               return (
@@ -337,7 +337,7 @@ export default function App() {
                   key={tab.id}
                   whileTap={{ scale: 0.94 }}
                   onClick={() => switchTab(tab.id)}
-                  className={`relative px-3 sm:px-4 h-8 text-[13px] whitespace-nowrap cursor-pointer transition-colors ${
+                  className={`relative px-2 sm:px-4 h-8 text-[13px] whitespace-nowrap cursor-pointer transition-colors ${
                     active ? 'text-paper font-bold' : 'text-ink-soft hover:text-ink'
                   }`}
                 >
@@ -355,13 +355,13 @@ export default function App() {
             })}
           </nav>
 
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             <motion.button
               whileTap={{ scale: 0.88 }}
               onClick={toggleTheme}
               aria-label={theme === 'dark' ? '切換為淺色模式' : '切換為暗黑模式'}
               title={theme === 'dark' ? '淺色模式' : '暗黑模式'}
-              className="w-9 h-9 rounded-full border border-ink/15 flex items-center justify-center cursor-pointer hover:border-ink/40 transition overflow-hidden"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-ink/15 flex items-center justify-center cursor-pointer hover:border-ink/40 transition overflow-hidden"
             >
               <AnimatePresence mode="wait" initial={false}>
                 <motion.span
@@ -382,9 +382,9 @@ export default function App() {
                 setMtrFocusLocked(false);
                 setActiveOverlayDrawer((v) => (v === 'mtr' ? 'none' : 'mtr'));
               }}
-              className="h-9 pl-1.5 pr-3 text-[13px] font-bold cursor-pointer inline-flex items-center gap-1.5 bg-accent text-white shadow-[3px_3px_0_rgba(200,16,46,0.3)] hover:brightness-110 transition"
+              className="h-9 px-2.5 sm:pl-1.5 sm:pr-3 text-[13px] font-bold cursor-pointer inline-flex items-center gap-1.5 bg-accent text-white shadow-[3px_3px_0_rgba(200,16,46,0.3)] hover:brightness-110 transition"
             >
-              <span className="w-6 h-6 rounded-full bg-card/95 flex items-center justify-center">
+              <span className="hidden sm:flex w-6 h-6 rounded-full bg-card/95 items-center justify-center">
                 <span className="w-3.5 h-[3px] bg-accent" />
               </span>
               <span className="font-hand">港鐵</span>
@@ -392,7 +392,7 @@ export default function App() {
             <motion.button
               whileTap={{ scale: 0.92 }}
               onClick={() => setActiveOverlayDrawer((v) => (v === 'logistics' ? 'none' : 'logistics'))}
-              className="h-9 px-3 text-[13px] font-bold cursor-pointer bg-card border border-ink/12 hover:border-ink/40 transition"
+              className="h-9 px-2.5 sm:px-3 text-[13px] font-bold cursor-pointer bg-card border border-ink/12 hover:border-ink/40 transition"
             >
               <span className="font-hand">手帖</span>
             </motion.button>
