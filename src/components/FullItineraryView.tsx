@@ -7,6 +7,7 @@ import { IconArrowUpRight, IconPin, IconSwap } from './Icons';
 import { SectionTitle } from './ui/MtrKit';
 import DelayControl from './ui/DelayControl';
 import PaymentBadges from './ui/PaymentBadges';
+import ItemLinks from './ui/ItemLinks';
 import { TicketSlot } from './ui/Tickets';
 import PhotoInspo, { IG_GRADIENT, PhotoSpotBadge } from './ui/PhotoInspo';
 import TransitLeg from './ui/TransitLeg';
@@ -227,6 +228,7 @@ export default function FullItineraryView({
                             <p className="text-xs text-ink-soft mt-0.5">{item.location}</p>
                             {rawItem.flexible && <p className="mt-1.5 text-[12px] text-ink-soft border-l-2 border-dashed border-ink/30 pl-2">可跳過：{rawItem.flexible}</p>}
                             {item.isHK && <div className="mt-1.5"><PaymentBadges payment={item.payment} /></div>}
+                            {item.links && <div className="mt-2"><ItemLinks links={item.links} /></div>}
                             <div className="mt-2"><TicketSlot itemId={item.id} hint={rawItem.ticketHint} /></div>
                             {item.photoSpot && <div className="mt-2"><PhotoInspo spot={item.photoSpot} title={item.title} location={item.location} image={item.image} /></div>}
 

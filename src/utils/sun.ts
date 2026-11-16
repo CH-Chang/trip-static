@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ITINERARY_DAYS } from '../data/tripData';
+import { fetchJsonRetry } from './weather';
 
 /**
  * 日出日落時間
@@ -50,11 +51,9 @@ async function fetchHk(): Promise<Record<string, SunTime>> {
 async function fetchTw(): Promise<Record<string, SunTime>> {
   const start = TRIP_DATES[0];
   const end = TRIP_DATES[TRIP_DATES.length - 1];
-  const res = await fetch(
+  const j = await fetchJsonRetry<{ daily: { time: string[]; sunrise: string[]; sunset: string[] } }>(
     `https://api.open-meteo.com/v1/forecast?latitude=25.0797&longitude=121.2342&daily=sunrise,sunset&timezone=Asia%2FTaipei&start_date=${start}&end_date=${end}`
   );
-  if (!res.ok) throw new Error(`Open-Meteo ${res.status}`);
-  const j = (await res.json()) as { daily: { time: string[]; sunrise: string[]; sunset: string[] } };
   const out: Record<string, SunTime> = {};
   j.daily.time.forEach((d, i) => (out[d] = { rise: j.daily.sunrise[i].slice(11, 16), set: j.daily.sunset[i].slice(11, 16) }));
   return out;
@@ -74,10 +73,12 @@ let inflight: Promise<SunData> | null = null;
 const listeners = new Set<(d: SunData | null, err: string | null) => void>();
 
 function load(): Promise<SunData> {
-  if (shared && Date.now() - shared.fetchedAt < MAX_AGE) return Promise.resolve(shared);
+  // 桃園那份上次沒抓到（空物件）就不吃快取，馬上重抓
+  if (shared && Date.now() - shared.fetchedAt < MAX_AGE && Object.keys(shared.tw).length > 0) return Promise.resolve(shared);
   if (!inflight) {
-    inflight = Promise.all([fetchHk(), fetchTw().catch(() => ({}) as Record<string, SunTime>)])
-      .then(([hk, tw]) => {
+    inflight = Promise.all([fetchHk(), fetchTw().catch(() => null)])
+      .then(([hk, twFresh]) => {
+        const tw = twFresh && Object.keys(twFresh).length > 0 ? twFresh : (shared?.tw ?? {});
         shared = { hk, tw, fetchedAt: Date.now() };
         try {
           localStorage.setItem(CACHE_KEY, JSON.stringify(shared));

@@ -53,14 +53,14 @@ export function SunRow({ date, place = 'hk' }: { date: string; place?: 'hk' | 't
   const t = data?.[place][date];
   if (!t) return null;
   return (
-    <p className="flex items-center gap-3 text-[11px] text-ink-soft">
-      <span className="inline-flex items-center gap-1">
+    <p className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-ink-soft">
+      <span className="inline-flex items-center gap-1 whitespace-nowrap">
         <span className="text-[#D99A00]">
           <SunIcon />
         </span>
         日出 <span className="font-mono text-ink">{t.rise}</span>
       </span>
-      <span className="inline-flex items-center gap-1">
+      <span className="inline-flex items-center gap-1 whitespace-nowrap">
         <span className="text-accent">
           <SunIcon set />
         </span>

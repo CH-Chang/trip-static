@@ -7,6 +7,7 @@ import { IconArrowUpRight, IconPin, IconSwap, IconTransit } from './Icons';
 import { LineProgress, Seal, StationSign } from './ui/MtrKit';
 import DelayControl from './ui/DelayControl';
 import PaymentBadges from './ui/PaymentBadges';
+import ItemLinks from './ui/ItemLinks';
 import { TicketSlot } from './ui/Tickets';
 import PhotoInspo, { PhotoSpotBadge } from './ui/PhotoInspo';
 import PreDepartureCarousel from './PreDepartureCarousel';
@@ -322,6 +323,7 @@ function DuringView({
                 <IconPin /> {focusItem.location}
               </p>
               {focusItem.isHK && <PaymentBadges payment={focusItem.payment} />}
+              <ItemLinks links={focusItem.links} />
               <TicketSlot itemId={focusItem.id} hint={focusItem.ticketHint} />
               {focusItem.photoSpot && <PhotoInspo spot={focusItem.photoSpot} title={focusItem.title} location={focusItem.location} image={focusItem.image} />}
 

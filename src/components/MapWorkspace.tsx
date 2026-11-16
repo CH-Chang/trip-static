@@ -8,6 +8,7 @@ import type { TripItem, TripStatus } from '../types/trip';
 import { getBearingAndDistance, getGoogleMapsDirectionsUrl, getGoogleMapsUrl } from '../utils/geo';
 import { IconArrowUpRight, IconClose, IconFit, IconPin, IconSwap, IconTransit } from './Icons';
 import PaymentBadges from './ui/PaymentBadges';
+import ItemLinks from './ui/ItemLinks';
 import { TicketSlot } from './ui/Tickets';
 import PhotoInspo, { IG_GRADIENT, PhotoSpotBadge } from './ui/PhotoInspo';
 import TransitLeg, { MODE_META, stepMinutes } from './ui/TransitLeg';
@@ -709,6 +710,11 @@ export default function MapWorkspace({
                 {selectedItem.isHK && (
                   <div className="mt-2">
                     <PaymentBadges payment={selectedItem.payment} />
+                  </div>
+                )}
+                {selectedItem.links && (
+                  <div className="mt-2">
+                    <ItemLinks links={selectedItem.links} />
                   </div>
                 )}
                 <div className="mt-2 flex flex-wrap gap-1.5">

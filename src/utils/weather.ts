@@ -108,36 +108,59 @@ interface RhrreadResponse {
 
 type WarnsumResponse = Record<string, { name: string; code: string }>;
 
-async function getJson<T>(dataType: string): Promise<T> {
-  const res = await fetch(`${API}?dataType=${dataType}&lang=tc`);
-  if (!res.ok) throw new Error(`HKO ${dataType} ${res.status}`);
-  return res.json() as Promise<T>;
+function getJson<T>(dataType: string): Promise<T> {
+  return fetchJsonRetry<T>(`${API}?dataType=${dataType}&lang=tc`, 2);
+}
+
+/** 失敗時隔一下再試；Open-Meteo 免費 API 偶爾會回 429 或逾時 */
+export async function fetchJsonRetry<T>(url: string, tries = 3): Promise<T> {
+  let last: unknown;
+  for (let i = 0; i < tries; i++) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`${new URL(url).host} ${res.status}`);
+      return (await res.json()) as T;
+    } catch (e) {
+      last = e;
+      if (i < tries - 1) await new Promise((r) => setTimeout(r, 800 * (i + 1)));
+    }
+  }
+  throw last;
 }
 
 async function fetchTaoyuan(): Promise<TaoyuanDay[]> {
   const url =
     'https://api.open-meteo.com/v1/forecast?latitude=25.0797&longitude=121.2342&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTaipei&forecast_days=16';
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Open-Meteo ' + res.status);
-  const j = (await res.json()) as {
-    daily: { time: string[]; weather_code: number[]; temperature_2m_max: number[]; temperature_2m_min: number[]; precipitation_probability_max: (number | null)[] };
-  };
-  return j.daily.time.map((date, i) => ({
-    date,
-    code: j.daily.weather_code[i],
-    maxTemp: Math.round(j.daily.temperature_2m_max[i]),
-    minTemp: Math.round(j.daily.temperature_2m_min[i]),
-    pop: j.daily.precipitation_probability_max[i]
-  }));
+  const j = await fetchJsonRetry<{
+    daily: {
+      time: string[];
+      weather_code: (number | null)[];
+      temperature_2m_max: (number | null)[];
+      temperature_2m_min: (number | null)[];
+      precipitation_probability_max: (number | null)[];
+    };
+  }>(url);
+  const out: TaoyuanDay[] = [];
+  j.daily.time.forEach((date, i) => {
+    const code = j.daily.weather_code[i];
+    const max = j.daily.temperature_2m_max[i];
+    const min = j.daily.temperature_2m_min[i];
+    // 預報最尾端的日子有時會是 null，當作還沒有資料，不要顯示成 0°
+    if (code == null || max == null || min == null) return;
+    out.push({ date, code, maxTemp: Math.round(max), minTemp: Math.round(min), pop: j.daily.precipitation_probability_max[i] ?? null });
+  });
+  return out;
 }
 
-export async function fetchWeather(): Promise<WeatherData> {
-  const [fnd, now, warn, taoyuan] = await Promise.all([
+export async function fetchWeather(prev: WeatherData | null = null): Promise<WeatherData> {
+  const [fnd, now, warn, taoyuanFresh] = await Promise.all([
     getJson<FndResponse>('fnd'),
     getJson<RhrreadResponse>('rhrread').catch(() => null),
     getJson<WarnsumResponse>('warnsum').catch(() => ({}) as WarnsumResponse),
-    fetchTaoyuan().catch(() => [] as TaoyuanDay[])
+    fetchTaoyuan().catch(() => null)
   ]);
+  // 桃園這次沒抓到就沿用上一次的資料，不要用空陣列蓋掉快取
+  const taoyuan = taoyuanFresh && taoyuanFresh.length > 0 ? taoyuanFresh : (prev?.taoyuan ?? []);
   const hko = now?.temperature?.data.find((d) => d.place === '香港天文台') ?? now?.temperature?.data[0];
   return {
     forecasts: fnd.weatherForecast.map((f) => ({
@@ -178,8 +201,10 @@ const listeners = new Set<(d: WeatherData | null, err: string | null) => void>()
 
 function refresh(force = false) {
   if (inflight) return inflight;
-  if (!force && shared && Date.now() - shared.fetchedAt < REFRESH_MS) return Promise.resolve(shared);
-  inflight = fetchWeather()
+  // 快取裡桃園是空的（上次沒抓到）就不等 30 分鐘，直接重抓
+  const fresh = shared && Date.now() - shared.fetchedAt < REFRESH_MS && (shared.taoyuan?.length ?? 0) > 0;
+  if (!force && fresh && shared) return Promise.resolve(shared);
+  inflight = fetchWeather(shared)
     .then((d) => {
       shared = d;
       try {

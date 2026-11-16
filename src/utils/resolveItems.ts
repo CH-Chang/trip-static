@@ -34,6 +34,7 @@ export function applyAlternatives(items: TripItem[], altSelections: Record<strin
       mtrId: alt.mtrId !== undefined ? alt.mtrId : item.mtrId,
       payment: alt.payment ?? item.payment,
       photoSpot: alt.photoSpot ?? item.photoSpot,
+      links: alt.links ?? item.links,
       transit: alt.transit ?? inherited ?? item.transit,
       transitBack: alt.transitBack ?? item.transitBack,
       isAlternativeActive: true

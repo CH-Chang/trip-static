@@ -1058,21 +1058,50 @@ export const ITINERARY_DAYS: ItineraryDay[] = [
         end: '2026-11-25T10:15:00+08:00',
         timeLabel: '09:00 — 10:15',
         title: '帝京酒店退房後赴東涌寄放行李',
-        location: '帝京酒店 → 東涌站 → 昂坪 360 東涌纜車站寄存處',
+        location: '帝京酒店 → 東涌站 → 東薈城名店倉智能儲物櫃',
         district: '東涌',
         districtColor: '#D97706',
-        coords: [22.2893, 113.9423],
+        coords: [22.2896, 113.9408],
         isHK: true,
         mtrId: 'tung-chung',
         image: 'https://commons.wikimedia.org/wiki/Special:FilePath/Ngong_Ping_360_Cable_Car_Ngong_Ping_Lantau_Island_Hong_Kong_-_panoramio.jpg?width=800',
-        googleQuery: '昂坪360 東涌纜車站 旅客服務中心',
-        payment: { methods: ['credit', 'cash'], note: '昂坪 360 寄存處每件 HK$100' },
-        description: '辦理退房後，帶著行李從旺角站搭港鐵荃灣綫，到荔景轉東涌綫前往東涌，把大件行李交給昂坪 360 東涌纜車站旅客服務中心人工寄放，再直接去搭纜車。',
-        tips: '東薈城 B2 和 B3 的置物櫃只收八達通和香港本地電子支付，這趟沒辦八達通所以不能用。昂坪 360 寄存處 10:00 到 18:00，每件 HK$100，可付現或刷卡，三件行李約 HK$300；10:00 才開門，早到就先在纜車站排隊。備案是東涌站旁可刷卡的 KJ Lockers。',
+        googleQuery: '東薈城名店倉 智能儲物櫃 Citygate Outlets Smart Locker',
+        payment: { methods: [], note: '官網只寫 CLUB CG 積分和 CG Dollar 可以折抵，沒寫能不能刷信用卡（2026-11-16 查）；到機台看清楚再放' },
+        links: [
+          {
+            label: '東薈城儲物櫃即時空櫃',
+            url: 'https://www.citygateoutlets.com.hk/en/locker-vacancies/',
+            note: '官網不允許嵌入，點了會另開新分頁；G/F、B2、B3 各層顯示「可用／尚餘少量／已滿」'
+          }
+        ],
+        description: '辦理退房後，帶著行李從旺角站搭港鐵荃灣綫，到荔景轉東涌綫前往東涌，出站直接進東薈城名店倉，把大件行李放進商場的智能儲物櫃，再走去搭昂坪 360 纜車。比昂坪 360 寄存處每件 HK$100 便宜很多。',
+        tips: '東薈城智能儲物櫃有三區：G/F 靠近昂坪 360 纜車站入口，首 6 小時每 2 小時 HK$25，之後每 2 小時 HK$30；B3（P2 停車場）小型櫃首 6 小時每 2 小時 HK$15、大型櫃 HK$40，之後分別是 HK$20、HK$60；B2 也有櫃位（以上為 2026-11-16 官網價格）。10:00 放到 15:05 取約 5 小時，算 3 個時段：G/F 每格約 HK$75、B3 大型櫃每格約 HK$120。大行李箱建議找 B3 大型櫃。出發前先點下面按鈕看空櫃。付款方式官網沒寫，如果現場不能刷卡，就切換到「昂坪 360 寄存處」備案（可刷卡，每件 HK$100）。',
         transit: [
           { mode: 'walk', label: '帶行李經旺角道行人天橋步行至港鐵旺角站', minutes: 12, note: '行李多可搭的士到旺角站，約 HK$30' },
           { mode: 'mtr', mtr: ['mong-kok', 'tung-chung'], label: '旺角 → 東涌，在荔景同月台轉東涌綫', fare: '感應信用卡 HK$18.7', note: '若從旺角東站出發需經九龍塘轉車，車資 HK$22.1 且較繞' },
-          { mode: 'walk', label: 'B 出口 → 達東路 → 昂坪 360 東涌纜車站旅客服務中心', minutes: 6 }
+          { mode: 'walk', label: '東涌站出閘 → 東薈城名店倉 G/F 或搭電梯到 B3 儲物櫃', minutes: 5 }
+        ],
+        alternatives: [
+          {
+            id: 'd4-1-alt',
+            label: '置物櫃不能刷卡或已滿',
+            title: '改到昂坪 360 東涌纜車站寄存處',
+            location: '帝京酒店 → 東涌站 → 昂坪 360 東涌纜車站寄存處',
+            coords: [22.2893, 113.9423],
+            googleQuery: '昂坪360 東涌纜車站 旅客服務中心',
+            payment: { methods: ['credit', 'cash'], note: '昂坪 360 寄存處每件 HK$100' },
+            description: '東薈城儲物櫃不能刷卡或已經滿了，就把大件行李交給昂坪 360 東涌纜車站旅客服務中心人工寄放，再直接去搭纜車。',
+            tips: '昂坪 360 寄存處 10:00 到 18:00，每件 HK$100，可付現或刷卡，三件行李約 HK$300；10:00 才開門，早到就先在纜車站排隊。',
+            transit: [
+              { mode: 'walk', label: '帶行李經旺角道行人天橋步行至港鐵旺角站', minutes: 12, note: '行李多可搭的士到旺角站，約 HK$30' },
+              { mode: 'mtr', mtr: ['mong-kok', 'tung-chung'], label: '旺角 → 東涌，在荔景同月台轉東涌綫', fare: '感應信用卡 HK$18.7' },
+              { mode: 'walk', label: 'B 出口 → 達東路 → 昂坪 360 東涌纜車站旅客服務中心', minutes: 6 }
+            ],
+            nextTransit: [
+              { mode: 'walk', label: '寄放好行李 → 纜車站排隊上車', minutes: 3 },
+              { mode: 'cable', label: '昂坪 360 東涌 → 昂坪', minutes: 25, fare: '官方原價來回標準車廂 HK$295，水晶車廂約 HK$365，線上常有折扣', note: '單程約 25 分鐘；強風時可能暫停' }
+            ]
+          }
         ]
       },
       {
@@ -1100,7 +1129,7 @@ export const ITINERARY_DAYS: ItineraryDay[] = [
         tips: '平日 10:00 到 18:00 行駛，週三 10:00 才開始；建議事先線上購票換 QR Code，並留意回程時段，銜接午餐與逛街。',
         payment: { methods: ['credit', 'applepay', 'cash'], note: '已購票；現場售票處可刷卡或 Apple Pay' },
         transit: [
-          { mode: 'walk', label: '寄放好行李 → 纜車站排隊上車', minutes: 3 },
+          { mode: 'walk', label: '東薈城儲物櫃 → 達東路 → 昂坪 360 纜車站排隊上車', minutes: 6, note: '放 G/F 儲物櫃的話離纜車站入口最近' },
           { mode: 'cable', label: '昂坪 360 東涌 → 昂坪', minutes: 25, fare: '官方原價來回標準車廂 HK$295，水晶車廂約 HK$365，線上常有折扣', note: '單程約 25 分鐘；強風時可能暫停' }
         ],
         alternatives: [
@@ -1168,10 +1197,10 @@ export const ITINERARY_DAYS: ItineraryDay[] = [
         image: 'https://commons.wikimedia.org/wiki/Special:FilePath/Hong_Kong_International_Airport.jpg?width=800',
         googleQuery: '東涌站巴士總站 城巴 S1',
         payment: { methods: ['credit', 'cash'], note: 'S1 上車感應信用卡' },
-        description: '回昂坪 360 東涌纜車站取回行李後，到東涌站巴士總站搭城巴 S1 或的士，約 10 到 15 分鐘就到香港國際機場二號客運大樓。',
-        tips: '東涌離機場很近，不用再折返九龍拿行李；S1 上車直接感應信用卡，車資 HK$3.7。寄存處 18:00 關門，記得在那之前取行李。',
+        description: '回東薈城儲物櫃取回行李（如果改寄昂坪 360，就回纜車站寄存處拿），到東涌站巴士總站搭城巴 S1 或的士，約 10 到 15 分鐘就到香港國際機場二號客運大樓。',
+        tips: '東涌離機場很近，不用再折返九龍拿行李；S1 上車直接感應信用卡，車資 HK$3.7。儲物櫃超過 6 小時每 2 小時收費會變貴，昂坪 360 寄存處 18:00 關門。',
         transit: [
-          { mode: 'walk', label: '昂坪 360 寄存處取回行李 → 東涌站巴士總站', minutes: 8 },
+          { mode: 'walk', label: '東薈城儲物櫃取回行李 → 東涌站巴士總站', minutes: 6, note: '若寄在昂坪 360 寄存處，從纜車站走過去約 8 分鐘' },
           { mode: 'bus', code: 'S1', label: '城巴 S1 東涌站 → 機場', minutes: 15, fare: '感應信用卡 HK$3.7', note: '班次密集，約 5–10 分鐘一班；大件行李放下層行李架' }
         ]
       },

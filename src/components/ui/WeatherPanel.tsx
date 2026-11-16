@@ -58,7 +58,7 @@ function GlyphStamp({ glyph }: { glyph: string }) {
 export function DayWeatherBadge({ date, dark = false }: { date: string; dark?: boolean }) {
   const { data } = useHkoWeather();
   const f = data?.forecasts.find((x) => x.date === date);
-  const base = `inline-flex items-center gap-1.5 px-2 py-0.5 border text-[12px] ${dark ? 'border-white/25 text-white' : 'border-ink/15 bg-card'}`;
+  const base = `inline-flex items-center gap-1.5 px-2 py-0.5 border text-[12px] whitespace-nowrap ${dark ? 'border-white/25 text-white' : 'border-ink/15 bg-card'}`;
   if (!f) return <span className={`${base} text-[11px] opacity-70`}>香港天氣 {availableFrom(date)} 起提供</span>;
   return (
     <span title={`${f.weather}，資料來自${WEATHER_SOURCE.short}`} className={base}>
@@ -75,22 +75,27 @@ export function DayWeatherBadge({ date, dark = false }: { date: string; dark?: b
 function TaoyuanRow({ t, role, date }: { t?: TaoyuanDay; role: string; date: string }) {
   if (!t) {
     return (
-      <div className="flex items-center gap-2 text-[11px] text-ink-soft">
-        <span className="font-mono">{role}</span>
-        <span>預報約 {availableFrom(date, 15)} 起提供</span>
+      <div className="text-[11px] text-ink-soft leading-snug">
+        <p className="font-mono whitespace-nowrap">{role}</p>
+        <p>預報約 {availableFrom(date, 15)} 起提供</p>
       </div>
     );
   }
   const w = wmoText(t.code);
   return (
-    <div className="flex items-center gap-2">
-      <GlyphStamp glyph={w.glyph} />
-      <div className="min-w-0">
-        <p className="text-[10px] font-mono text-ink-soft">{role}・{w.text}</p>
-        <p className="font-mono text-sm font-bold leading-tight">
-          {t.maxTemp}°<span className="text-ink-soft font-normal">/{t.minTemp}°</span>
-          {t.pop != null && <span className="text-[10px] font-normal text-ink-soft ml-1.5">降雨 {t.pop}%</span>}
-        </p>
+    <div className="min-w-0">
+      <p className="text-[10px] font-mono text-ink-soft whitespace-nowrap truncate">{role}</p>
+      <div className="flex items-center gap-2 mt-0.5">
+        <GlyphStamp glyph={w.glyph} />
+        <div className="min-w-0">
+          <p className="font-mono text-sm font-bold leading-tight whitespace-nowrap">
+            {t.maxTemp}°<span className="text-ink-soft font-normal">/{t.minTemp}°</span>
+          </p>
+          <p className="text-[10px] text-ink-soft whitespace-nowrap truncate">
+            {w.text}
+            {t.pop != null && `・雨 ${t.pop}%`}
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -107,10 +112,10 @@ function DayCard({ day, date, label, color, f, tao, i }: { day: number; date: st
       className="relative bg-card border border-ink/15 shadow-[3px_3px_0_rgba(31,29,26,0.1)] flex flex-col"
     >
       <div className="h-1" style={{ backgroundColor: color }} />
-      <div className="p-3.5 flex-1 flex flex-col gap-2.5">
-        <div className="flex items-baseline justify-between">
-          <span className="font-mono text-[10px] tracking-widest text-ink-soft">DAY 0{day}</span>
-          <span className="font-mono text-[10px] text-ink-soft">{label}</span>
+      <div className="p-2.5 sm:p-3.5 flex-1 flex flex-col gap-2.5 min-w-0">
+        <div className="flex items-baseline justify-between gap-1">
+          <span className="font-mono text-[10px] tracking-widest text-ink-soft whitespace-nowrap">DAY 0{day}</span>
+          <span className="font-mono text-[10px] text-ink-soft whitespace-nowrap truncate">{label}</span>
         </div>
 
         {role && day === 1 && (
@@ -125,13 +130,18 @@ function DayCard({ day, date, label, color, f, tao, i }: { day: number; date: st
           {f ? (
             <>
               <div className="flex items-center gap-2">
-                <img src={hkoIconUrl(f.icon)} alt={f.weather} className="w-11 h-11 -ml-1" />
-                <div>
-                  <p className="font-mono text-2xl font-bold leading-none">
-                    {f.maxTemp}°<span className="text-base text-ink-soft">/{f.minTemp}°</span>
+                <img src={hkoIconUrl(f.icon)} alt={f.weather} className="w-9 h-9 sm:w-11 sm:h-11 -ml-1 shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-mono text-xl sm:text-2xl font-bold leading-none whitespace-nowrap">
+                    {f.maxTemp}°<span className="text-sm sm:text-base text-ink-soft">/{f.minTemp}°</span>
                   </p>
-                  <p className="text-[11px] text-ink-soft mt-1">
-                    降雨 <strong className={f.psr.includes('高') ? 'text-accent' : ''}>{f.psr}</strong>・濕度 {f.minRh}–{f.maxRh}%
+                  <p className="text-[11px] text-ink-soft mt-1 leading-snug">
+                    <span className="whitespace-nowrap">
+                      降雨 <strong className={f.psr.includes('高') ? 'text-accent' : ''}>{f.psr}</strong>
+                    </span>
+                    <span className="hidden sm:inline">・</span>
+                    <br className="sm:hidden" />
+                    <span className="whitespace-nowrap">濕度 {f.minRh}–{f.maxRh}%</span>
                   </p>
                 </div>
               </div>
@@ -140,7 +150,7 @@ function DayCard({ day, date, label, color, f, tao, i }: { day: number; date: st
             </>
           ) : (
             <div className="mt-1 border border-dashed border-ink/20 px-2.5 py-2.5 text-center">
-              <p className="text-[12px] text-ink-soft">天文台預報尚未釋出</p>
+              <p className="text-[12px] text-ink-soft">天文台預報<wbr />尚未釋出</p>
               <p className="font-mono text-[10px] text-ink-soft mt-0.5">約 {availableFrom(date)} 起自動顯示</p>
             </div>
           )}
@@ -184,7 +194,7 @@ export default function WeatherPanel() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         {ITINERARY_DAYS.map((d, i) => (
           <DayCard key={d.day} day={d.day} date={d.date} label={d.dateLabel} color={d.stationColor} f={byDate.get(d.date)} tao={tao.get(d.date)} i={i} />
         ))}

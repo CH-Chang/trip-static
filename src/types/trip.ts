@@ -1,5 +1,13 @@
 export type Coords = [number, number];
 
+/** 外部連結（例如即時空櫃查詢），顯示成按鈕、另開新分頁 */
+export interface ItemLink {
+  label: string;
+  url: string;
+  /** 按鈕下方的小字說明 */
+  note?: string;
+}
+
 export interface AlternativeSpot {
   id: string;
   label: string;
@@ -23,6 +31,7 @@ export interface AlternativeSpot {
   transitBack?: TransitStep[];
   /** 選了這個備案後，下一站的交通（出發點改變了） */
   nextTransit?: TransitStep[];
+  links?: ItemLink[];
 }
 
 /** 交通方式 */
@@ -84,6 +93,8 @@ export interface TripItem {
   description: string;
   tips: string;
   alternatives?: AlternativeSpot[];
+  /** 外部連結，例如即時空櫃查詢 */
+  links?: ItemLink[];
   /** 店家付款方式 */
   payment?: PaymentInfo;
   /** 拍照景點：顯示「看別人怎麼拍」，連到 IG 標籤頁、小紅書與 Google 圖片 */
